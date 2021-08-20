@@ -11,8 +11,6 @@ contract MintPass is ERC721 {
     uint256 public totalSupply = 0;
     uint256 public constant MAX_SUPPLY = 500;
 
-    mapping(address => bool) holdPass;
-
     event Paused();
     event Unpaused();
 
@@ -61,7 +59,7 @@ contract MintPass is ERC721 {
     }
 
     function claimPass(bytes memory _signature, uint256 _passAmount) external {
-        require(!holdPass[msg.sender], "Already received pass");
+        require(balanceOf(msg.sender) == 0, "Already received pass");
 
         bytes32 messageHash = keccak256(
             abi.encodePacked(msg.sender, _passAmount)
@@ -81,8 +79,6 @@ contract MintPass is ERC721 {
         }
         address signer = ecrecover(ethSignedMessageHash, v, r, s);
         require(signer == owner, "Signature is not from the owner");
-
-        holdPass[msg.sender] = true;
 
         for (uint256 i = totalSupply; i < _passAmount + totalSupply; i += 1) {
             _mint(msg.sender, i);
