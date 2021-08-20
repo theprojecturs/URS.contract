@@ -13,6 +13,7 @@ contract MintPass is ERC721 {
 
     event Paused();
     event Unpaused();
+    event ClaimPass(address claimer, uint256 amount);
 
     constructor(
         string memory __name,
@@ -86,5 +87,7 @@ contract MintPass is ERC721 {
 
         totalSupply += _passAmount;
         require(totalSupply <= MAX_SUPPLY, "invalid amount of pass to mint");
+
+        emit ClaimPass(msg.sender, _passAmount);
     }
 }
