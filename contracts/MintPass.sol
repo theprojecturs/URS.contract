@@ -9,7 +9,7 @@ contract MintPass is ERC721 {
     string public baseURI;
 
     uint256 public totalSupply = 0;
-    uint256 public maxSupply = 500;
+    uint256 public constant maxSupply = 500;
 
     mapping(address => bool) holdPass;
 
@@ -17,10 +17,10 @@ contract MintPass is ERC721 {
     event Unpaused();
 
     constructor(
-        string memory _name,
-        string memory _symbol,
+        string memory __name,
+        string memory __symbol,
         string memory __baseURI
-    ) ERC721(_name, _symbol) {
+    ) ERC721(__name, __symbol) {
         owner = msg.sender;
         baseURI = __baseURI;
     }
@@ -40,7 +40,7 @@ contract MintPass is ERC721 {
         emit Unpaused();
     }
 
-    function tokenURI(uint256 tokenId)
+    function tokenURI(uint256)
         public
         view
         virtual
