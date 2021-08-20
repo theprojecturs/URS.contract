@@ -9,7 +9,7 @@ contract MintPass is ERC721 {
     string public baseURI;
 
     uint256 public totalSupply = 0;
-    uint256 public constant maxSupply = 500;
+    uint256 public constant MAX_SUPPLY = 500;
 
     mapping(address => bool) holdPass;
 
@@ -89,6 +89,6 @@ contract MintPass is ERC721 {
         }
 
         totalSupply += _passAmount;
-        require(totalSupply <= maxSupply, "invalid amount of pass to mint");
+        require(totalSupply <= MAX_SUPPLY, "invalid amount of pass to mint");
     }
 }
