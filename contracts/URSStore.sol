@@ -145,6 +145,11 @@ contract URSStore {
     // Do not update newlyMintedURS to prevent withdrawal
     function preMintURS(address to) external onlyOwner {
         require(preMintedURS < maxPreMintURS, "Exceeds max pre-mint URS");
+        require(
+            block.timestamp <
+                openingHours + operationSecondsForVIP + operationSeconds,
+            "Not available after ticketing period"
+        );
         ursFactory.mint(to);
         preMintedURS += 1;
     }
