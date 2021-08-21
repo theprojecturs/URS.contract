@@ -488,4 +488,172 @@ describe('URSStore', () => {
         .withArgs(receiver.address, amount, changes);
     });
   });
+
+  describe('takingTickets', async () => {
+    beforeEach(async () => {
+      const openingHours = await getCurrentTimestamp();
+      await ursStoreContract.setOpeningHours(openingHours);
+      await ethers.provider.send('evm_increaseTime', [
+        OPERATION_SECONDS_FOR_VIP + 1,
+      ]);
+      await ethers.provider.send('evm_mine', []);
+    });
+
+    it('fails when store is not opened yet', async () => {
+      const openingHours = await getCurrentTimestamp();
+      await ursStoreContract.setOpeningHours(openingHours + 7 * 24 * 3600);
+
+      await expect(ursStoreContract.takingTickets(1)).to.be.revertedWith(
+        'Store is not opened'
+      );
+    });
+
+    it('fails when store is opened only for VIP', async () => {
+      const openingHours = await getCurrentTimestamp();
+      await ursStoreContract.setOpeningHours(openingHours);
+      await ethers.provider.send('evm_increaseTime', [
+        OPERATION_SECONDS_FOR_VIP / 2,
+      ]);
+      await ethers.provider.send('evm_mine', []);
+
+      await expect(ursStoreContract.takingTickets(1)).to.be.revertedWith(
+        'Store is not opened'
+      );
+    });
+
+    it('fails when store is closed', async () => {
+      const openingHours = await getCurrentTimestamp();
+      await ursStoreContract.setOpeningHours(openingHours);
+      await ethers.provider.send('evm_increaseTime', [
+        OPERATION_SECONDS_FOR_VIP + OPERATION_SECONDS + 1,
+      ]);
+      await ethers.provider.send('evm_mine', []);
+
+      await expect(ursStoreContract.takingTickets(1)).to.be.revertedWith(
+        'Store is closed'
+      );
+    });
+
+    it('fails when requestedAmount is zero', async () => {
+      await expect(ursStoreContract.takingTickets(0)).to.be.revertedWith(
+        'Need to take ticket more than 0'
+      );
+    });
+
+    it('fails if user already has taken tickets', async () => {
+      const amount = 1;
+      const totalPrice = TICKET_PRICE_IN_WEI.mul(amount);
+      const taker = account1;
+
+      await expect(
+        ursStoreContract
+          .connect(taker)
+          .takingTickets(amount, { value: totalPrice })
+      ).not.to.be.reverted;
+
+      await expect(
+        ursStoreContract
+          .connect(taker)
+          .takingTickets(amount, { value: totalPrice })
+      ).to.be.revertedWith('Already registered');
+    });
+
+    it('fails if user sends not enough eth', async () => {
+      const amount = 10;
+      const totalPrice = TICKET_PRICE_IN_WEI.mul(amount);
+      const taker = account1;
+
+      await expect(
+        ursStoreContract
+          .connect(taker)
+          .takingTickets(amount, { value: totalPrice.sub(1) })
+      ).to.be.revertedWith('Not enough money');
+    });
+
+    it('change several status', async () => {
+      const amount = 10;
+      const totalPrice = TICKET_PRICE_IN_WEI.mul(amount);
+      const taker = account1;
+
+      const ticketsBefore = await ursStoreContract.ticketsOf(taker.address);
+      const totalTicketsBefore = await ursStoreContract.totalTickets();
+      expect(ticketsBefore.index).to.eq(0);
+      expect(ticketsBefore.amount).to.eq(0);
+
+      await ursStoreContract
+        .connect(taker)
+        .takingTickets(amount, { value: totalPrice });
+
+      const ticketsAfter = await ursStoreContract.ticketsOf(taker.address);
+      const totalTicketsAfter = await ursStoreContract.totalTickets();
+
+      expect(ticketsAfter.index).to.eq(totalTicketsBefore);
+      expect(ticketsAfter.amount).to.eq(amount);
+      expect(totalTicketsAfter).to.eq(totalTicketsBefore.add(amount));
+    });
+
+    it('accumulates totalPrice eth to the contract', async () => {
+      const amount = 10;
+      const totalPrice = TICKET_PRICE_IN_WEI.mul(amount);
+      const taker = account1;
+
+      const ethBalanceOfContract = await ethers.provider.getBalance(
+        ursStoreContract.address
+      );
+
+      await ursStoreContract
+        .connect(taker)
+        .takingTickets(amount, { value: totalPrice });
+
+      expect(await ethers.provider.getBalance(ursStoreContract.address)).to.eq(
+        ethBalanceOfContract.add(totalPrice)
+      );
+    });
+
+    it('returns changes', async () => {
+      const amount = 10;
+      const totalPrice = TICKET_PRICE_IN_WEI.mul(amount);
+      const taker = account1;
+
+      const ethBalanceOfContractBefore = await ethers.provider.getBalance(
+        ursStoreContract.address
+      );
+      const ethBalanceOfTakerBefore = await ethers.provider.getBalance(
+        taker.address
+      );
+
+      await ursStoreContract
+        .connect(taker)
+        .takingTickets(amount, { value: totalPrice.add(1), gasPrice: 0 });
+
+      const ethBalanceOfContractAfter = await ethers.provider.getBalance(
+        ursStoreContract.address
+      );
+      const ethBalanceOfTakerAfter = await ethers.provider.getBalance(
+        taker.address
+      );
+
+      expect(ethBalanceOfContractAfter).to.eq(
+        ethBalanceOfContractBefore.add(totalPrice)
+      );
+      expect(ethBalanceOfTakerAfter).to.eq(
+        ethBalanceOfTakerBefore.sub(totalPrice)
+      );
+    });
+
+    it("emit 'TakingTickets' event", async () => {
+      const amount = 10;
+      const totalPrice = TICKET_PRICE_IN_WEI.mul(amount);
+      const taker = account1;
+      const changes = 1;
+
+      await expect(
+        ursStoreContract
+          .connect(taker)
+          .takingTickets(amount, { value: totalPrice.add(changes) })
+      )
+        .to.emit(ursStoreContract, 'TakingTickets')
+        .withArgs(taker.address, amount, changes);
+    });
+  });
 });
