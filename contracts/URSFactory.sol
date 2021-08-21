@@ -7,9 +7,9 @@ contract URSFactory is ERC721 {
     string public baseURI;
     uint256 public totalSupply;
     address public owner;
-    address public operator;
+    address public ursStore;
 
-    event SetOperator(address operator);
+    event SetURSStore(address ursStore);
     event SetBaseURI(string baseURI);
 
     constructor(
@@ -26,17 +26,17 @@ contract URSFactory is ERC721 {
         _;
     }
 
-    modifier onlyOwnerOrOperator() {
+    modifier onlyOwnerOrStore() {
         require(
-            operator == msg.sender || owner == msg.sender,
-            "caller is neither operator nor owner"
+            ursStore == msg.sender || owner == msg.sender,
+            "caller is neither ursStore nor owner"
         );
         _;
     }
 
-    function setOperator(address _operator) external onlyOwner {
-        operator = _operator;
-        emit SetOperator(_operator);
+    function setURSStore(address _ursStore) external onlyOwner {
+        ursStore = _ursStore;
+        emit SetURSStore(_ursStore);
     }
 
     function setBaseURI(string memory __baseURI) external onlyOwner {
@@ -48,7 +48,7 @@ contract URSFactory is ERC721 {
         return baseURI;
     }
 
-    function mint(address to) public onlyOwnerOrOperator {
+    function mint(address to) public onlyOwnerOrStore {
         _mint(to, totalSupply);
         totalSupply += 1;
     }
