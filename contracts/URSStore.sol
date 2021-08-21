@@ -210,6 +210,8 @@ contract URSStore {
         raffleNumber = _raffleNumber;
         uint256 remainingURS = maxURS - preMintedURS - newlyMintedURSWithPass;
 
+        // Hopefully consider that totalTickets number is more than remainingURS
+        // Actually this number can be controlled from team by taking tickets
         slotSize = totalTickets.div(remainingURS);
         offsetInSlot = _raffleNumber.mod(slotSize);
 
