@@ -12,7 +12,11 @@ contract URSFactory is ERC721 {
     event SetOperator(address operator);
     event SetBaseURI(string baseURI);
 
-    constructor(string memory __baseURI) ERC721("URS", "URS") {
+    constructor(
+        string memory __name,
+        string memory __symbol,
+        string memory __baseURI
+    ) ERC721(__name, __symbol) {
         owner = msg.sender;
         baseURI = __baseURI;
     }
