@@ -8,6 +8,7 @@ import { signTypedData, DomainType, splitSignature } from './utils/EIP712';
 chai.use(solidity);
 const { expect } = chai;
 
+const MAX_SUPPLY = 500;
 const configs = {
   name: 'test',
   symbol: 'tst',
@@ -226,6 +227,24 @@ describe('MintPass', () => {
       await expect(
         mintPassContract.connect(deployer).claimPass(amount, ...splitSig)
       ).to.be.revertedWith('Signature is not from the owner');
+    });
+
+    it('fails if trying to mint more than MAX_SUPPLY', async () => {
+      const attemptAmount = MAX_SUPPLY + 1;
+      signature = await signTypedData({
+        signer: contractOwner,
+        domain,
+        types,
+        data: {
+          receiver: receiver.address,
+          amount: attemptAmount,
+        },
+      });
+      const { r, s, v } = splitSignature(signature);
+
+      await expect(
+        mintPassContract.connect(receiver).claimPass(attemptAmount, v, r, s)
+      ).to.be.revertedWith('Exceeds max supply');
     });
 
     it('emits ClaimPass event', async () => {
