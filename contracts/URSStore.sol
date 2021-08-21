@@ -184,6 +184,8 @@ contract URSStore {
     }
 
     function takingTickets(uint256 _amount) external payable whenOpened {
+        require(_amount > 0, "Need to take ticket more than 0");
+
         ticket storage myTicket = ticketsOf[msg.sender];
         require(myTicket.amount == 0, "Already registered");
 
