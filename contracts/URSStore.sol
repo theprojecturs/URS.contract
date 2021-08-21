@@ -220,9 +220,11 @@ contract URSStore {
 
     function checkMyResult() public {
         require(raffleNumber > 0, "raffle number is not set yet");
-        ticket storage myTicket = ticketsOf[msg.sender];
-        result storage myResult = resultOf[msg.sender];
 
+        ticket storage myTicket = ticketsOf[msg.sender];
+        require(myTicket.amount > 0, "No ticket is left");
+
+        result storage myResult = resultOf[msg.sender];
         require(!myResult.executed, "Already checked");
 
         /**
