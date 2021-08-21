@@ -5,6 +5,7 @@ import "@openzeppelin/contracts/token/ERC721/ERC721.sol";
 
 contract URSFactory is ERC721 {
     string public baseURI;
+    uint256 public constant MAX_SUPPLY = 10000;
     uint256 public totalSupply;
     address public owner;
     address public ursStore;
@@ -49,6 +50,7 @@ contract URSFactory is ERC721 {
     }
 
     function mint(address to) public onlyOwnerOrStore {
+        require(totalSupply < MAX_SUPPLY, "Exceeds max supply");
         _mint(to, totalSupply);
         totalSupply += 1;
     }
