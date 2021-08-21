@@ -20,6 +20,8 @@ const MAX_PRE_MINT_SUPPLY = 20;
 const MAX_URS_PER_PASS = 20;
 const MAX_MINT_PER_TX = 20;
 const TICKET_PRICE_IN_WEI = ethers.utils.parseEther('0.08');
+const OPERATION_SECONDS_FOR_VIP = 3600 * 3;
+const OPERATION_SECONDS = 3600 * 24;
 
 const configs = {
   name: 'test',
@@ -65,8 +67,12 @@ describe('URSStore', () => {
       expect(await ursStoreContract.newlyMintedURSWithPass()).to.eq(0);
       expect(await ursStoreContract.maxURSPerPass()).to.eq(MAX_URS_PER_PASS);
       expect(await ursStoreContract.openingHours()).to.eq(0);
-      expect(await ursStoreContract.operationSecondsForVIP()).to.eq(3600 * 3);
-      expect(await ursStoreContract.operationSeconds()).to.eq(3600 * 24);
+      expect(await ursStoreContract.operationSecondsForVIP()).to.eq(
+        OPERATION_SECONDS_FOR_VIP
+      );
+      expect(await ursStoreContract.operationSeconds()).to.eq(
+        OPERATION_SECONDS
+      );
       expect(await ursStoreContract.ticketPrice()).to.eq(TICKET_PRICE_IN_WEI);
       expect(await ursStoreContract.totalTickets()).to.eq(0);
       expect(await ursStoreContract.maxMintPerTx()).to.eq(MAX_MINT_PER_TX);
@@ -185,9 +191,21 @@ describe('URSStore', () => {
   });
 
   describe('preMintURS', async () => {
+    let openingHours = 0;
+    let closingHours = 0;
+
     beforeEach(async () => {
       await ursStoreContract.setURSFactory(ursFactoryContract.address);
       await ursFactoryContract.setURSStore(ursStoreContract.address);
+
+      const currentBlockNum = await ethers.provider.getBlockNumber();
+      const currentBlock = await ethers.provider.getBlock(currentBlockNum);
+      const currentTimestamp = currentBlock.timestamp;
+      openingHours = currentTimestamp;
+
+      closingHours =
+        openingHours + OPERATION_SECONDS_FOR_VIP + OPERATION_SECONDS;
+      await ursStoreContract.setOpeningHours(openingHours);
     });
 
     it('fails if non-owner try to call', async () => {
@@ -197,6 +215,28 @@ describe('URSStore', () => {
       await expect(
         ursStoreContract.connect(nonOwner).preMintURS(nonOwner.address)
       ).to.be.revertedWith('caller is not the owner');
+    });
+
+    it('fails if ticketing period is over', async () => {
+      let currentBlockNum = await ethers.provider.getBlockNumber();
+      let currentBlock = await ethers.provider.getBlock(currentBlockNum);
+      let currentTimestamp = currentBlock.timestamp;
+      expect(currentTimestamp).to.lt(closingHours);
+
+      await expect(ursStoreContract.preMintURS(deployer.address)).not.to.be
+        .reverted;
+
+      await ethers.provider.send('evm_increaseTime', [closingHours + 1]);
+      await ethers.provider.send('evm_mine', []);
+
+      currentBlockNum = await ethers.provider.getBlockNumber();
+      currentBlock = await ethers.provider.getBlock(currentBlockNum);
+      currentTimestamp = currentBlock.timestamp;
+      expect(currentTimestamp).to.gt(closingHours);
+
+      await expect(
+        ursStoreContract.preMintURS(deployer.address)
+      ).to.be.revertedWith('Not available after ticketing period');
     });
 
     it('mints one URS to receiver', async () => {
