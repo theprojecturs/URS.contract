@@ -101,7 +101,7 @@ contract URSStore {
     }
 
     modifier onlyOwner() {
-        require(owner == msg.sender, "caller is not the owner of the ticket");
+        require(owner == msg.sender, "caller is not the owner");
         _;
     }
 
