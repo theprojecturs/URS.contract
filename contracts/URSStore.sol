@@ -68,7 +68,7 @@ contract URSStore {
     /**
         Security
      */
-    uint256 public constant maxMintPerTx = 20;
+    uint256 public constant maxMintPerTx = 30;
 
     /**
         Raffle
