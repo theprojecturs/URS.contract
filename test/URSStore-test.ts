@@ -18,7 +18,7 @@ const EMPTY_ADDRESS = '0x0000000000000000000000000000000000000000';
 const MAX_SUPPLY = 10000;
 const MAX_PRE_MINT_SUPPLY = 20;
 const MAX_URS_PER_PASS = 20;
-const MAX_MINT_PER_TX = 20;
+const MAX_MINT_PER_TX = 30;
 const TICKET_PRICE_IN_WEI = ethers.utils.parseEther('0.08');
 const OPERATION_SECONDS_FOR_VIP = 3600 * 3;
 const OPERATION_SECONDS = 3600 * 24;
@@ -34,6 +34,14 @@ describe('URSStore', () => {
   let mintPassContract: TestMintPass;
   let ursFactoryContract: URSFactory;
   let ursStoreContract: URSStore;
+
+  const getCurrentTimestamp = async () => {
+    const currentBlockNum = await ethers.provider.getBlockNumber();
+    const currentBlock = await ethers.provider.getBlock(currentBlockNum);
+    const currentTimestamp = currentBlock.timestamp;
+
+    return currentTimestamp;
+  };
 
   beforeEach(async () => {
     [deployer, account1] = await ethers.getSigners();
@@ -54,12 +62,18 @@ describe('URSStore', () => {
 
     const URSStore = new URSStore__factory(deployer);
     ursStoreContract = await URSStore.deploy();
+
+    await ursFactoryContract.setURSStore(ursStoreContract.address);
+    await ursStoreContract.setURSFactory(ursFactoryContract.address);
+    await ursStoreContract.setMintPass(mintPassContract.address);
   });
 
   describe('constructor', async () => {
     it('Should be initialized successfully', async () => {
-      expect(await ursStoreContract.mintPass()).to.eq(EMPTY_ADDRESS);
-      expect(await ursStoreContract.ursFactory()).to.eq(EMPTY_ADDRESS);
+      expect(await ursStoreContract.mintPass()).to.eq(mintPassContract.address);
+      expect(await ursStoreContract.ursFactory()).to.eq(
+        ursFactoryContract.address
+      );
       expect(await ursStoreContract.owner()).to.eq(deployer.address);
       expect(await ursStoreContract.maxURS()).to.eq(MAX_SUPPLY);
       expect(await ursStoreContract.preMintedURS()).to.eq(0);
@@ -102,15 +116,12 @@ describe('URSStore', () => {
     });
 
     it('changes mintPass address', async () => {
-      expect(await ursStoreContract.mintPass()).not.to.eq(
-        mintPassContract.address
-      );
+      const newMintPassAddress = account1.address;
+      expect(await ursStoreContract.mintPass()).not.to.eq(newMintPassAddress);
 
-      await ursStoreContract
-        .connect(deployer)
-        .setMintPass(mintPassContract.address);
+      await ursStoreContract.connect(deployer).setMintPass(newMintPassAddress);
 
-      expect(await ursStoreContract.mintPass()).to.eq(mintPassContract.address);
+      expect(await ursStoreContract.mintPass()).to.eq(newMintPassAddress);
     });
 
     it("emits 'SetMintPass' event", async () => {
@@ -135,17 +146,17 @@ describe('URSStore', () => {
     });
 
     it('changes ursFactory address', async () => {
+      const newURSFactoryAddress = account1.address;
+
       expect(await ursStoreContract.ursFactory()).not.to.eq(
-        ursFactoryContract.address
+        newURSFactoryAddress
       );
 
       await ursStoreContract
         .connect(deployer)
-        .setURSFactory(ursFactoryContract.address);
+        .setURSFactory(newURSFactoryAddress);
 
-      expect(await ursStoreContract.ursFactory()).to.eq(
-        ursFactoryContract.address
-      );
+      expect(await ursStoreContract.ursFactory()).to.eq(newURSFactoryAddress);
     });
 
     it("emits 'SetURSFactory' event", async () => {
@@ -192,19 +203,9 @@ describe('URSStore', () => {
 
   describe('preMintURS', async () => {
     let openingHours = 0;
-    let closingHours = 0;
 
     beforeEach(async () => {
-      await ursStoreContract.setURSFactory(ursFactoryContract.address);
-      await ursFactoryContract.setURSStore(ursStoreContract.address);
-
-      const currentBlockNum = await ethers.provider.getBlockNumber();
-      const currentBlock = await ethers.provider.getBlock(currentBlockNum);
-      const currentTimestamp = currentBlock.timestamp;
-      openingHours = currentTimestamp;
-
-      closingHours =
-        openingHours + OPERATION_SECONDS_FOR_VIP + OPERATION_SECONDS;
+      openingHours = await getCurrentTimestamp();
       await ursStoreContract.setOpeningHours(openingHours);
     });
 
@@ -218,6 +219,9 @@ describe('URSStore', () => {
     });
 
     it('fails if ticketing period is over', async () => {
+      const closingHours =
+        openingHours + OPERATION_SECONDS_FOR_VIP + OPERATION_SECONDS;
+
       let currentBlockNum = await ethers.provider.getBlockNumber();
       let currentBlock = await ethers.provider.getBlock(currentBlockNum);
       let currentTimestamp = currentBlock.timestamp;
@@ -266,6 +270,222 @@ describe('URSStore', () => {
       );
 
       await expect(tasks).to.be.revertedWith('Exceeds max pre-mint URS');
+    });
+  });
+
+  describe('mintWithPass', async () => {
+    let openingHours = 0;
+
+    beforeEach(async () => {
+      openingHours = await getCurrentTimestamp();
+      await ursStoreContract.setOpeningHours(openingHours);
+    });
+
+    it('fails if store is not opened', async () => {
+      await ursStoreContract.setOpeningHours(openingHours + 24 * 3600);
+
+      await expect(ursStoreContract.mintWithPass(1)).to.be.revertedWith(
+        'Store is not opened for VIP'
+      );
+    });
+
+    it('fails if vip time is over', async () => {
+      await ursStoreContract.setOpeningHours(0);
+
+      await expect(ursStoreContract.mintWithPass(1)).to.be.revertedWith(
+        'Store is closed for VIP'
+      );
+    });
+
+    it('fails if mint amount exceeds maxMintPerTx', async () => {
+      await expect(
+        ursStoreContract.mintWithPass(MAX_MINT_PER_TX + 1)
+      ).to.be.revertedWith('mint amount exceeds maximum');
+    });
+
+    it('fails if user does not hold any mintPass', async () => {
+      const receiver = account1;
+      expect(await mintPassContract.balanceOf(receiver.address)).to.eq(0);
+
+      await expect(ursStoreContract.mintWithPass(1)).to.be.revertedWith(
+        'Not enough Pass'
+      );
+    });
+
+    it('fails for zero amount', async () => {
+      await expect(ursStoreContract.mintWithPass(0)).to.be.revertedWith(
+        'Need to mint more than 0'
+      );
+    });
+
+    it('fails if mint amount exceeds allowed quantity (mintPass qty)', async () => {
+      const receiver = account1;
+
+      await mintPassContract.mint(receiver.address, 0);
+      expect(await mintPassContract.balanceOf(receiver.address)).to.eq(1);
+
+      await expect(
+        ursStoreContract.connect(receiver).mintWithPass(MAX_URS_PER_PASS + 1)
+      ).to.be.revertedWith('Not enough Pass');
+    });
+
+    it('fails if zero ether is sent', async () => {
+      const receiver = account1;
+
+      await mintPassContract.mint(receiver.address, 0);
+      expect(await mintPassContract.balanceOf(receiver.address)).to.eq(1);
+
+      await expect(
+        ursStoreContract.connect(receiver).mintWithPass(1)
+      ).to.be.revertedWith('Not enough money');
+    });
+
+    it('fails if not enough ether is sent', async () => {
+      const receiver = account1;
+      const amount = 3;
+      const totalPrice = TICKET_PRICE_IN_WEI.mul(amount);
+
+      await mintPassContract.mint(receiver.address, 0);
+      expect(await mintPassContract.balanceOf(receiver.address)).to.eq(1);
+
+      await expect(
+        ursStoreContract
+          .connect(receiver)
+          .mintWithPass(amount, { value: totalPrice.sub(1) })
+      ).to.be.revertedWith('Not enough money');
+    });
+
+    it('mints requested amount to message sender', async () => {
+      const receiver = account1;
+      const amount = 3;
+      const totalPrice = TICKET_PRICE_IN_WEI.mul(amount);
+
+      await mintPassContract.mint(receiver.address, 0);
+      expect(await mintPassContract.balanceOf(receiver.address)).to.eq(1);
+
+      const mintedAmount = await ursStoreContract.mintedURSOf(receiver.address);
+      const newlyMintedURSWithPass =
+        await ursStoreContract.newlyMintedURSWithPass();
+
+      await ursStoreContract
+        .connect(receiver)
+        .mintWithPass(amount, { value: totalPrice });
+
+      expect(await ursStoreContract.mintedURSOf(receiver.address)).to.eq(
+        mintedAmount.toNumber() + amount
+      );
+      expect(await ursStoreContract.newlyMintedURSWithPass()).to.eq(
+        newlyMintedURSWithPass.toNumber() + amount
+      );
+    });
+
+    it('mints multiple until reaches max available amount', async () => {
+      const receiver = account1;
+      const amount = MAX_URS_PER_PASS;
+      const totalPrice = TICKET_PRICE_IN_WEI.mul(amount);
+
+      await mintPassContract.mint(receiver.address, 0);
+      await mintPassContract.mint(receiver.address, 1);
+      expect(await mintPassContract.balanceOf(receiver.address)).to.eq(2);
+
+      const mintedAmount = await ursStoreContract.mintedURSOf(receiver.address);
+      const newlyMintedURSWithPass =
+        await ursStoreContract.newlyMintedURSWithPass();
+
+      await ursStoreContract
+        .connect(receiver)
+        .mintWithPass(amount, { value: totalPrice });
+
+      expect(await ursStoreContract.mintedURSOf(receiver.address)).to.eq(
+        mintedAmount.toNumber() + amount
+      );
+      expect(await ursStoreContract.newlyMintedURSWithPass()).to.eq(
+        newlyMintedURSWithPass.toNumber() + amount
+      );
+
+      await ursStoreContract
+        .connect(receiver)
+        .mintWithPass(amount, { value: totalPrice });
+
+      expect(await ursStoreContract.mintedURSOf(receiver.address)).to.eq(
+        mintedAmount.toNumber() + amount * 2
+      );
+      expect(await ursStoreContract.newlyMintedURSWithPass()).to.eq(
+        newlyMintedURSWithPass.toNumber() + amount * 2
+      );
+    });
+
+    it("accumulate received ether in it's contract", async () => {
+      const receiver = account1;
+      const amount = MAX_URS_PER_PASS;
+      const totalPrice = TICKET_PRICE_IN_WEI.mul(amount);
+
+      await mintPassContract.mint(receiver.address, 0);
+
+      const ethBalanceOfContract = await ethers.provider.getBalance(
+        ursStoreContract.address
+      );
+
+      await ursStoreContract
+        .connect(receiver)
+        .mintWithPass(amount, { value: totalPrice });
+
+      expect(await ethers.provider.getBalance(ursStoreContract.address)).to.eq(
+        ethBalanceOfContract.add(totalPrice)
+      );
+    });
+
+    it('returns changes', async () => {
+      const receiver = account1;
+      const amount = MAX_URS_PER_PASS;
+      const extraAmountInWei = 100;
+      const totalPrice = TICKET_PRICE_IN_WEI.mul(amount);
+
+      await mintPassContract.mint(receiver.address, 0);
+
+      const ethBalanceOfContract = await ethers.provider.getBalance(
+        ursStoreContract.address
+      );
+      const ethBalanceOfReceiver = await ethers.provider.getBalance(
+        receiver.address
+      );
+
+      await ursStoreContract.connect(receiver).mintWithPass(amount, {
+        value: totalPrice.add(extraAmountInWei),
+        gasPrice: 0,
+      });
+
+      expect(await ethers.provider.getBalance(ursStoreContract.address)).to.eq(
+        ethBalanceOfContract.add(totalPrice)
+      );
+      expect(await ethers.provider.getBalance(receiver.address)).to.eq(
+        ethBalanceOfReceiver.sub(totalPrice)
+      );
+    });
+
+    it("emits 'MintWithPass' event", async () => {
+      const receiver = account1;
+      const amount = 1;
+      const totalPrice = TICKET_PRICE_IN_WEI;
+
+      await mintPassContract.mint(receiver.address, 0);
+
+      await expect(
+        ursStoreContract
+          .connect(receiver)
+          .mintWithPass(amount, { value: totalPrice })
+      )
+        .to.emit(ursStoreContract, 'MintWithPass')
+        .withArgs(receiver.address, amount, 0);
+
+      const changes = 100;
+      await expect(
+        ursStoreContract
+          .connect(receiver)
+          .mintWithPass(amount, { value: totalPrice.add(changes) })
+      )
+        .to.emit(ursStoreContract, 'MintWithPass')
+        .withArgs(receiver.address, amount, changes);
     });
   });
 });
