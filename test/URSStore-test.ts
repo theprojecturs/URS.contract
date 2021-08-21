@@ -656,4 +656,68 @@ describe('URSStore', () => {
         .withArgs(taker.address, amount, changes);
     });
   });
+
+  describe('runRaffle', async () => {
+    beforeEach(async () => {
+      const openingHours = await getCurrentTimestamp();
+      await ursStoreContract.setOpeningHours(openingHours);
+      await ethers.provider.send('evm_increaseTime', [
+        OPERATION_SECONDS_FOR_VIP + OPERATION_SECONDS / 2,
+      ]);
+      await ethers.provider.send('evm_mine', []);
+
+      const ticketAmount = MAX_SUPPLY;
+      await ursStoreContract.takingTickets(ticketAmount, {
+        value: TICKET_PRICE_IN_WEI.mul(MAX_SUPPLY),
+      });
+    });
+
+    it("fails for non-owner's request", async () => {
+      const nonOwner = account1;
+
+      await expect(
+        ursStoreContract.connect(nonOwner).runRaffle(1)
+      ).to.be.revertedWith('caller is not the owner');
+    });
+
+    it('fails if raffleNumber already set', async () => {
+      await expect(ursStoreContract.runRaffle(1)).not.to.be.reverted;
+      await expect(ursStoreContract.runRaffle(1)).to.be.revertedWith(
+        'raffle number is already set'
+      );
+    });
+
+    it("emits 'RunRaffle' event", async () => {
+      const raffleNumber = 5;
+      await expect(ursStoreContract.runRaffle(raffleNumber))
+        .to.emit(ursStoreContract, 'RunRaffle')
+        .withArgs(raffleNumber);
+    });
+  });
+
+  /**
+  describe('sets correctly with numbers', async () => {
+      it('preMintedURS: 0, newlyMintedURSWithPass: 0, totalTickets: 10k, raffleNumber: 1', async () => {
+        const raffleNumber = ethers.BigNumber.from(1);
+        const slotSizeExpected = 1;
+        const offsetInSlotExpected = 0;
+
+        const preMintedURS = await ursStoreContract.preMintedURS();
+        const newlyMintedURSWithPass =
+          await ursStoreContract.newlyMintedURSWithPass();
+        const totalTickets = await ursStoreContract.totalTickets();
+        expect(preMintedURS).to.eq(0);
+        expect(newlyMintedURSWithPass).to.eq(0);
+        expect(totalTickets).to.eq(10 ** 4);
+
+        const remainingURS =
+          MAX_SUPPLY -
+          preMintedURS.toNumber() -
+          newlyMintedURSWithPass.toNumber();
+
+        expect(totalTickets.div(remainingURS)).to.eq(slotSizeExpected);
+        expect(raffleNumber.mod(slotSizeExpected)).to.eq(offsetInSlotExpected);
+      });
+    });
+   */
 });
