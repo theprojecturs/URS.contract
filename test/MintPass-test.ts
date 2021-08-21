@@ -3,6 +3,7 @@ import { ethers } from 'hardhat';
 import { TestMintPass, TestMintPass__factory } from '../types';
 import { SignerWithAddress } from '@nomiclabs/hardhat-ethers/signers';
 import { solidity } from 'ethereum-waffle';
+import { signTypedData, DomainType, splitSignature } from './utils/EIP712';
 
 chai.use(solidity);
 const { expect } = chai;
@@ -13,7 +14,7 @@ const configs = {
   baseURI: 'test.com',
 };
 
-describe('MintPass', function () {
+describe('MintPass', () => {
   let [
     deployer,
     nonDeployer,
@@ -129,5 +130,110 @@ describe('MintPass', function () {
     });
   });
 
-  describe('claimPass', async () => {});
+  describe('claimPass', async () => {
+    const amount = 4;
+
+    let contractOwner: SignerWithAddress = deployer;
+    let receiver: SignerWithAddress = nonDeployer;
+    let domain: DomainType;
+    let types: any;
+    let signature: string;
+
+    // [v, r, s]
+    let splitSig: [number, string, string];
+
+    beforeEach(async () => {
+      contractOwner = deployer;
+      receiver = nonDeployer;
+      domain = {
+        name: configs.name,
+        version: '1',
+        chainId: 31337, // hardhat test chainId
+        verifyingContract: mintPassContract.address,
+      };
+      types = {
+        PassReq: [
+          {
+            name: 'receiver',
+            type: 'address',
+          },
+          {
+            name: 'amount',
+            type: 'uint256',
+          },
+        ],
+      };
+      signature = await signTypedData({
+        signer: contractOwner,
+        domain,
+        types,
+        data: {
+          receiver: receiver.address,
+          amount,
+        },
+      });
+      const { r, s, v } = splitSignature(signature);
+      splitSig = [v, r, s];
+    });
+
+    it('successfully mints claimed amount pass', async () => {
+      const currentPassBalance = await mintPassContract.balanceOf(
+        receiver.address
+      );
+
+      await mintPassContract.connect(receiver).claimPass(amount, ...splitSig);
+
+      const updatedPassBalance = await mintPassContract.balanceOf(
+        receiver.address
+      );
+      expect(updatedPassBalance).to.eq(currentPassBalance.toNumber() + amount);
+    });
+
+    it('fails if user already holds pass', async () => {
+      await mintPassContract.connect(receiver).claimPass(amount, ...splitSig);
+      const passBalance = await mintPassContract.balanceOf(receiver.address);
+      expect(passBalance).to.eq(amount).not.to.eq(0);
+
+      await expect(
+        mintPassContract.connect(receiver).claimPass(amount, ...splitSig)
+      ).to.be.revertedWith('Already received pass');
+    });
+
+    it('fails if unmatched amount is sent', async () => {
+      await expect(
+        mintPassContract.connect(receiver).claimPass(amount + 1, ...splitSig)
+      ).to.be.revertedWith('Signature is not from the owner');
+    });
+
+    it('fails if signer is not the contract owner', async () => {
+      signature = await signTypedData({
+        signer: receiver,
+        domain,
+        types,
+        data: {
+          receiver: receiver.address,
+          amount,
+        },
+      });
+      const { r, s, v } = splitSignature(signature);
+
+      await expect(
+        mintPassContract.connect(receiver).claimPass(amount + 1, v, r, s)
+      ).to.be.revertedWith('Signature is not from the owner');
+    });
+
+    it('fails if receiver and transaction sender are different', async () => {
+      await expect(
+        mintPassContract.connect(deployer).claimPass(amount, ...splitSig)
+      ).to.be.revertedWith('Signature is not from the owner');
+    });
+
+    it('emits ClaimPass event', async () => {
+      await expect(
+        mintPassContract.connect(receiver).claimPass(amount, ...splitSig)
+      )
+        .to.emit(mintPassContract, 'ClaimPass')
+        .withArgs(receiver.address, amount);
+    });
+  });
 });
