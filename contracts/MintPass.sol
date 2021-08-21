@@ -76,6 +76,9 @@ contract MintPass is ERC721, EIP712 {
     ) external {
         require(balanceOf(msg.sender) == 0, "Already received pass");
 
+        totalSupply += _passAmount;
+        require(totalSupply <= MAX_SUPPLY, "Exceeds max supply");
+
         bytes32 digest = _hashTypedDataV4(
             keccak256(abi.encode(TYPEHASH, msg.sender, _passAmount))
         );
@@ -86,9 +89,6 @@ contract MintPass is ERC721, EIP712 {
         for (uint256 i = totalSupply; i < _passAmount + totalSupply; i += 1) {
             _mint(msg.sender, i);
         }
-
-        totalSupply += _passAmount;
-        require(totalSupply <= MAX_SUPPLY, "invalid amount of pass to mint");
 
         emit ClaimPass(msg.sender, _passAmount);
     }
