@@ -45,7 +45,7 @@ contract URSStore {
      */
     uint256 public newlyMintedURSWithPass = 0;
     uint256 public constant maxURSPerPass = 20;
-    mapping(address => uint256) mintedURSOf;
+    mapping(address => uint256) public mintedURSOf;
 
     /**
         Scheduling
@@ -59,7 +59,7 @@ contract URSStore {
      */
     uint256 public constant ticketPrice = 0.08 ether;
     uint256 public totalTickets = 0;
-    mapping(address => ticket) ticketsOf;
+    mapping(address => ticket) public ticketsOf;
     struct ticket {
         uint256 index; // Incl
         uint256 amount;
