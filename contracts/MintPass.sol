@@ -2,8 +2,17 @@
 pragma solidity ^0.8.0;
 
 import "@openzeppelin/contracts/token/ERC721/ERC721.sol";
+import "@openzeppelin/contracts/utils/cryptography/draft-EIP712.sol";
 
-contract MintPass is ERC721 {
+contract MintPass is ERC721, EIP712 {
+    // EIP712 Feature
+    bytes32 public constant TYPEHASH =
+        keccak256("PassReq(address receiver,uint256 amount)");
+    struct PassReq {
+        address receiver;
+        uint256 amount;
+    }
+
     address public owner;
     bool public paused = true;
     string public baseURI;
@@ -19,7 +28,7 @@ contract MintPass is ERC721 {
         string memory __name,
         string memory __symbol,
         string memory __baseURI
-    ) ERC721(__name, __symbol) {
+    ) ERC721(__name, __symbol) EIP712(__name, "1") {
         owner = msg.sender;
         baseURI = __baseURI;
     }
@@ -59,26 +68,19 @@ contract MintPass is ERC721 {
         require(!_exists(tokenId) || !paused, "token transfer while paused");
     }
 
-    function claimPass(bytes memory _signature, uint256 _passAmount) external {
+    function claimPass(
+        uint256 _passAmount,
+        uint8 vSig,
+        bytes32 rSig,
+        bytes32 sSig
+    ) external {
         require(balanceOf(msg.sender) == 0, "Already received pass");
 
-        bytes32 messageHash = keccak256(
-            abi.encodePacked(msg.sender, _passAmount)
-        );
-        bytes32 ethSignedMessageHash = keccak256(
-            abi.encodePacked("\x19Ethereum Signed Message:\n32", messageHash)
+        bytes32 digest = _hashTypedDataV4(
+            keccak256(abi.encode(TYPEHASH, msg.sender, _passAmount))
         );
 
-        require(_signature.length == 65, "Invalid signature");
-        bytes32 r;
-        bytes32 s;
-        uint8 v;
-        assembly {
-            r := mload(add(_signature, 32))
-            s := mload(add(_signature, 64))
-            v := byte(0, mload(add(_signature, 96)))
-        }
-        address signer = ecrecover(ethSignedMessageHash, v, r, s);
+        address signer = ecrecover(digest, vSig, rSig, sSig);
         require(signer == owner, "Signature is not from the owner");
 
         for (uint256 i = totalSupply; i < _passAmount + totalSupply; i += 1) {
