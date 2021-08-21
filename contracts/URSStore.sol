@@ -82,6 +82,20 @@ contract URSStore {
         uint256 validTicketAmount;
     }
 
+    event SetMintPass(address mintPass);
+    event SetURSFactory(address ursFactory);
+    event SetOpeningHours(uint256 openingHours);
+    event MintWithPass(address account, uint256 amount, uint256 changes);
+    event TakingTickets(address account, uint256 amount, uint256 changes);
+    event RunRaffle(uint256 raffleNumber);
+    event SetResult(
+        address account,
+        uint256 validTicketAmount,
+        uint256 changes
+    );
+    event MintURS(address account, uint256 mintRequestAmount);
+    event Withdraw();
+
     constructor() {
         owner = msg.sender;
     }
@@ -115,14 +129,17 @@ contract URSStore {
 
     function setMintPass(MintPass _mintPass) external onlyOwner {
         mintPass = _mintPass;
+        emit SetMintPass(address(_mintPass));
     }
 
     function setURSFactory(URSFactory _ursFactory) external onlyOwner {
         ursFactory = _ursFactory;
+        emit SetURSFactory(address(_ursFactory));
     }
 
     function setOpeningHours(uint256 _openingHours) external onlyOwner {
         openingHours = _openingHours;
+        emit SetOpeningHours(_openingHours);
     }
 
     // Do not update newlyMintedURS to prevent withdrawal
@@ -156,6 +173,8 @@ contract URSStore {
         // Refund changes
         uint256 changes = msg.value.sub(totalPrice);
         payable(msg.sender).transfer(changes);
+
+        emit MintWithPass(msg.sender, _amount, changes);
     }
 
     function takingTickets(uint256 _amount) external payable whenOpened {
@@ -173,6 +192,8 @@ contract URSStore {
         // Refund changes
         uint256 changes = msg.value.sub(totalPrice);
         payable(msg.sender).transfer(changes);
+
+        emit TakingTickets(msg.sender, _amount, changes);
     }
 
     function runRaffle(uint256 _raffleNumber) external onlyOwner {
@@ -183,6 +204,8 @@ contract URSStore {
 
         slotSize = totalTickets.div(remainingURS);
         offsetInSlot = _raffleNumber.mod(slotSize);
+
+        emit RunRaffle(_raffleNumber);
     }
 
     function checkMyResult() public {
@@ -244,7 +267,10 @@ contract URSStore {
         myResult.executed = true;
 
         uint256 remainingTickets = myTicket.amount - validTicketAmount;
-        payable(msg.sender).transfer(remainingTickets * ticketPrice);
+        uint256 changes = remainingTickets * ticketPrice;
+        payable(msg.sender).transfer(changes);
+
+        emit SetResult(msg.sender, validTicketAmount, changes);
     }
 
     function mintURS() external {
@@ -268,6 +294,8 @@ contract URSStore {
         }
 
         newlyMintedURS += mintRequestAmount;
+
+        emit MintURS(msg.sender, mintRequestAmount);
     }
 
     // withdraw eth for claimed URS tickets
@@ -279,5 +307,7 @@ contract URSStore {
 
         claimedEth += withdrawalAmount;
         newlyMintedURS = 0;
+
+        emit Withdraw();
     }
 }
