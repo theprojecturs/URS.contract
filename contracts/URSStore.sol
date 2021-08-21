@@ -251,34 +251,32 @@ contract URSStore {
 
         uint256 firstWinIndex;
         if (firstIndexOffset <= offsetInSlot) {
-            firstWinIndex = myTicket.index - firstIndexOffset + offsetInSlot;
+            firstWinIndex = myTicket.index.add(offsetInSlot).sub(
+                firstIndexOffset
+            );
         } else {
-            firstWinIndex =
-                myTicket.index -
-                firstIndexOffset +
-                slotSize +
-                offsetInSlot;
+            firstWinIndex = myTicket.index.add(slotSize).add(offsetInSlot).sub(
+                firstIndexOffset
+            );
         }
 
         uint256 lastWinIndex;
         if (lastIndexOffset >= offsetInSlot) {
-            lastWinIndex = lastIndex - lastIndexOffset + offsetInSlot;
+            lastWinIndex = lastIndex.add(offsetInSlot).sub(lastIndexOffset);
         } else {
-            lastWinIndex =
-                lastIndex -
-                lastIndexOffset +
-                offsetInSlot -
-                slotSize;
+            lastWinIndex = lastIndex.add(offsetInSlot).sub(lastIndexOffset).sub(
+                    slotSize
+                );
         }
 
-        uint256 validTicketAmount = (lastWinIndex - firstWinIndex).div(
+        uint256 validTicketAmount = (lastWinIndex.sub(firstWinIndex)).div(
             slotSize
         ) + 1;
 
         myResult.validTicketAmount = validTicketAmount;
         myResult.executed = true;
 
-        uint256 remainingTickets = myTicket.amount - validTicketAmount;
+        uint256 remainingTickets = myTicket.amount.sub(validTicketAmount);
         uint256 changes = remainingTickets * ticketPrice;
         payable(msg.sender).transfer(changes);
 
