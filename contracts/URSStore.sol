@@ -156,6 +156,7 @@ contract URSStore {
 
     function mintWithPass(uint256 _amount) external payable whenVIPOpened {
         require(_amount <= maxMintPerTx, "mint amount exceeds maximum");
+        require(_amount > 0, "Need to mint more than 0");
 
         uint256 mintedURS = mintedURSOf[msg.sender];
         uint256 passAmount = mintPass.balanceOf(msg.sender);
