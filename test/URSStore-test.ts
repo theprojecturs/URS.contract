@@ -994,29 +994,134 @@ describe('URSStore', () => {
       );
     });
   });
-  /**
-  describe('sets correctly with numbers', async () => {
-      it('preMintedURS: 0, newlyMintedURSWithPass: 0, totalTickets: 10k, raffleNumber: 1', async () => {
-        const raffleNumber = ethers.BigNumber.from(1);
-        const slotSizeExpected = 1;
-        const offsetInSlotExpected = 0;
 
-        const preMintedURS = await ursStoreContract.preMintedURS();
-        const newlyMintedURSWithPass =
-          await ursStoreContract.newlyMintedURSWithPass();
-        const totalTickets = await ursStoreContract.totalTickets();
-        expect(preMintedURS).to.eq(0);
-        expect(newlyMintedURSWithPass).to.eq(0);
-        expect(totalTickets).to.eq(10 ** 4);
+  describe('calculation test', async () => {
+    const prepareEnvironments = async ({
+      preMintedURS,
+      newlyMintedURSWithPass,
+      totalTickets,
+      raffleNumber,
+    }: {
+      preMintedURS: number;
+      newlyMintedURSWithPass: number;
+      totalTickets: number;
+      raffleNumber: number;
+    }): Promise<void> => {
+      const preMintTasks = new Array(preMintedURS)
+        .fill(null)
+        .map(() => ursStoreContract.preMintURS(EMPTY_ADDRESS));
+      await Promise.all(preMintTasks);
 
-        const remainingURS =
-          MAX_SUPPLY -
-          preMintedURS.toNumber() -
-          newlyMintedURSWithPass.toNumber();
+      const openingHours = await getCurrentTimestamp();
+      await ursStoreContract.setOpeningHours(openingHours);
+      await ethers.provider.send('evm_increaseTime', [
+        OPERATION_SECONDS_FOR_VIP / 2,
+      ]);
+      await ethers.provider.send('evm_mine', []);
 
-        expect(totalTickets.div(remainingURS)).to.eq(slotSizeExpected);
-        expect(raffleNumber.mod(slotSizeExpected)).to.eq(offsetInSlotExpected);
+      const passHolder = account1;
+      let requiredMintPassAmount = Math.ceil(
+        newlyMintedURSWithPass / MAX_URS_PER_PASS
+      );
+      let requiredMintWithPassTxAmount = Math.ceil(
+        newlyMintedURSWithPass / MAX_MINT_PER_TX
+      );
+
+      const mintMintPassTasks = new Array(requiredMintPassAmount)
+        .fill(null)
+        .map((_, i) => mintPassContract.mint(passHolder.address, i));
+      await Promise.all(mintMintPassTasks);
+
+      const mintWithPassTasks = new Array(requiredMintWithPassTxAmount)
+        .fill(null)
+        .map((_, i) => {
+          const amount =
+            i + 1 === requiredMintWithPassTxAmount
+              ? newlyMintedURSWithPass % MAX_MINT_PER_TX
+              : MAX_MINT_PER_TX;
+          const totalPrice = TICKET_PRICE_IN_WEI.mul(amount);
+          return ursStoreContract
+            .connect(passHolder)
+            .mintWithPass(amount, { value: totalPrice });
+        });
+      await Promise.all(mintWithPassTasks);
+
+      await ethers.provider.send('evm_increaseTime', [
+        OPERATION_SECONDS_FOR_VIP / 2 + 1,
+      ]);
+      await ethers.provider.send('evm_mine', []);
+
+      await ursStoreContract.takingTickets(totalTickets, {
+        value: TICKET_PRICE_IN_WEI.mul(totalTickets),
       });
-    });
-   */
+
+      await ursStoreContract.runRaffle(raffleNumber);
+    };
+
+    interface TestSet {
+      preMintedURS: number;
+      newlyMintedURSWithPass: number;
+      totalTickets: number;
+      raffleNumber: number;
+      slotSizeExpected: number;
+      offsetInSlotExpected: number;
+      lastTargetIndexExpected: number;
+    }
+    const testSets: TestSet[] = [
+      {
+        preMintedURS: 0,
+        newlyMintedURSWithPass: 0,
+        totalTickets: 10000,
+        raffleNumber: 1,
+        slotSizeExpected: 1,
+        offsetInSlotExpected: 0,
+        lastTargetIndexExpected: 9999,
+      },
+      {
+        preMintedURS: 0,
+        newlyMintedURSWithPass: 5,
+        totalTickets: 10000,
+        raffleNumber: 1,
+        slotSizeExpected: 1,
+        offsetInSlotExpected: 0,
+        lastTargetIndexExpected: 9994,
+      },
+      {
+        preMintedURS: 0,
+        newlyMintedURSWithPass: 0,
+        totalTickets: 20000,
+        raffleNumber: 2,
+        slotSizeExpected: 2,
+        offsetInSlotExpected: 0,
+        lastTargetIndexExpected: 19999,
+      },
+    ];
+
+    const testSetForPrint = (testSet: TestSet) => {
+      return Object.keys(testSet).reduce(
+        (acc, v) => `${acc}, ${v}: ${testSet[v as keyof TestSet]}`,
+        ''
+      );
+    };
+
+    await Promise.all(
+      testSets.map((testSet) => {
+        it(testSetForPrint(testSet), async () => {
+          await prepareEnvironments({
+            ...testSet,
+          });
+
+          expect(await ursStoreContract.slotSize()).to.eq(
+            testSet.slotSizeExpected
+          );
+          expect(await ursStoreContract.offsetInSlot()).to.eq(
+            testSet.offsetInSlotExpected
+          );
+          expect(await ursStoreContract.lastTargetIndex()).to.eq(
+            testSet.lastTargetIndexExpected
+          );
+        });
+      })
+    );
+  });
 });
