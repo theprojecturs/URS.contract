@@ -266,6 +266,8 @@ contract URSStore {
                 lastWinIndex = lastIndex.add(_offsetInSlot).sub(
                     lastIndexOffset
                 );
+            } else if (lastIndex < _slotSize) {
+                lastWinIndex = 0;
             } else {
                 lastWinIndex = lastIndex
                     .add(_offsetInSlot)
