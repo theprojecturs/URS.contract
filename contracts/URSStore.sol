@@ -220,16 +220,13 @@ contract URSStore {
         emit RunRaffle(_raffleNumber);
     }
 
-    function checkMyResult() public {
-        require(raffleNumber > 0, "raffle number is not set yet");
-
-        ticket storage myTicket = ticketsOf[msg.sender];
-        require(myTicket.amount > 0, "No available ticket");
-
-        result storage myResult = resultOf[msg.sender];
-        require(!myResult.executed, "Already checked");
-
-        uint256 validTicketAmount;
+    function calculateValidTicketAmount(
+        uint256 index,
+        uint256 amount,
+        uint256 _slotSize,
+        uint256 _offsetInSlot,
+        uint256 _lastTargetIndex
+    ) internal pure returns (uint256 validTicketAmount) {
         /**
 
         /_____fio___\___________________________________/lio\___________
@@ -246,49 +243,66 @@ contract URSStore {
             v in (slot #n+1) is ths firstWinIndex
             v in (slot #n+2) is ths lastWinIndex
         */
+        uint256 lastIndex = index + amount - 1; // incl.
 
-        uint256 lastIndex = myTicket.index + myTicket.amount - 1; // incl.
-
-        uint256 firstIndexOffset = (myTicket.index).mod(slotSize);
-        uint256 lastIndexOffset = (lastIndex).mod(slotSize);
+        uint256 firstIndexOffset = (index).mod(_slotSize);
+        uint256 lastIndexOffset = (lastIndex).mod(_slotSize);
 
         uint256 firstWinIndex;
-        if (firstIndexOffset <= offsetInSlot) {
-            firstWinIndex = myTicket.index.add(offsetInSlot).sub(
-                firstIndexOffset
-            );
+        if (firstIndexOffset <= _offsetInSlot) {
+            firstWinIndex = index.add(_offsetInSlot).sub(firstIndexOffset);
         } else {
-            firstWinIndex = myTicket.index.add(slotSize).add(offsetInSlot).sub(
+            firstWinIndex = index.add(_slotSize).add(_offsetInSlot).sub(
                 firstIndexOffset
             );
         }
 
         // Nothing is selected
-        if (firstWinIndex > lastTargetIndex) {
+        if (firstWinIndex > _lastTargetIndex) {
             validTicketAmount = 0;
         } else {
             uint256 lastWinIndex;
-            if (lastIndexOffset >= offsetInSlot) {
-                lastWinIndex = lastIndex.add(offsetInSlot).sub(lastIndexOffset);
+            if (lastIndexOffset >= _offsetInSlot) {
+                lastWinIndex = lastIndex.add(_offsetInSlot).sub(
+                    lastIndexOffset
+                );
             } else {
                 lastWinIndex = lastIndex
-                    .add(offsetInSlot)
+                    .add(_offsetInSlot)
                     .sub(lastIndexOffset)
-                    .sub(slotSize);
+                    .sub(_slotSize);
             }
 
-            while (lastWinIndex > lastTargetIndex) {
-                lastWinIndex -= slotSize;
+            while (lastWinIndex > _lastTargetIndex) {
+                lastWinIndex -= _slotSize;
             }
 
             if (firstWinIndex > lastWinIndex) {
                 validTicketAmount = 0;
             } else {
                 validTicketAmount =
-                    (lastWinIndex.sub(firstWinIndex)).div(slotSize) +
+                    (lastWinIndex.sub(firstWinIndex)).div(_slotSize) +
                     1;
             }
         }
+    }
+
+    function checkMyResult() public {
+        require(raffleNumber > 0, "raffle number is not set yet");
+
+        ticket storage myTicket = ticketsOf[msg.sender];
+        require(myTicket.amount > 0, "No available ticket");
+
+        result storage myResult = resultOf[msg.sender];
+        require(!myResult.executed, "Already checked");
+
+        uint256 validTicketAmount = calculateValidTicketAmount(
+            myTicket.index,
+            myTicket.amount,
+            slotSize,
+            offsetInSlot,
+            lastTargetIndex
+        );
 
         myResult.validTicketAmount = validTicketAmount;
         myResult.executed = true;
