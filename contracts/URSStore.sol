@@ -76,6 +76,7 @@ contract URSStore {
     uint256 public raffleNumber;
     uint256 public offsetInSlot;
     uint256 public slotSize;
+    uint256 public lastTargetIndex; // index greater than this is dis-regarded
     mapping(address => result) public resultOf;
     struct result {
         bool executed;
@@ -214,6 +215,7 @@ contract URSStore {
         // Actually this number can be controlled from team by taking tickets
         slotSize = totalTickets.div(remainingURS);
         offsetInSlot = _raffleNumber.mod(slotSize);
+        lastTargetIndex = slotSize * remainingURS - 1;
 
         emit RunRaffle(_raffleNumber);
     }
@@ -222,11 +224,12 @@ contract URSStore {
         require(raffleNumber > 0, "raffle number is not set yet");
 
         ticket storage myTicket = ticketsOf[msg.sender];
-        require(myTicket.amount > 0, "No ticket is left");
+        require(myTicket.amount > 0, "No available ticket");
 
         result storage myResult = resultOf[msg.sender];
         require(!myResult.executed, "Already checked");
 
+        uint256 validTicketAmount;
         /**
 
         /_____fio___\___________________________________/lio\___________
@@ -260,18 +263,32 @@ contract URSStore {
             );
         }
 
-        uint256 lastWinIndex;
-        if (lastIndexOffset >= offsetInSlot) {
-            lastWinIndex = lastIndex.add(offsetInSlot).sub(lastIndexOffset);
+        // Nothing is selected
+        if (firstWinIndex > lastTargetIndex) {
+            validTicketAmount = 0;
         } else {
-            lastWinIndex = lastIndex.add(offsetInSlot).sub(lastIndexOffset).sub(
-                    slotSize
-                );
-        }
+            uint256 lastWinIndex;
+            if (lastIndexOffset >= offsetInSlot) {
+                lastWinIndex = lastIndex.add(offsetInSlot).sub(lastIndexOffset);
+            } else {
+                lastWinIndex = lastIndex
+                    .add(offsetInSlot)
+                    .sub(lastIndexOffset)
+                    .sub(slotSize);
+            }
 
-        uint256 validTicketAmount = (lastWinIndex.sub(firstWinIndex)).div(
-            slotSize
-        ) + 1;
+            while (lastWinIndex > lastTargetIndex) {
+                lastWinIndex -= slotSize;
+            }
+
+            if (firstWinIndex > lastWinIndex) {
+                validTicketAmount = 0;
+            } else {
+                validTicketAmount =
+                    (lastWinIndex.sub(firstWinIndex)).div(slotSize) +
+                    1;
+            }
+        }
 
         myResult.validTicketAmount = validTicketAmount;
         myResult.executed = true;
