@@ -24,6 +24,9 @@ const config: HardhatUserConfig = {
   networks: {
     hardhat: {
       initialBaseFeePerGas: 0,
+      accounts: {
+        accountsBalance: '100000000000000000000000', // 100,000eth
+      },
     },
   },
   typechain: {
