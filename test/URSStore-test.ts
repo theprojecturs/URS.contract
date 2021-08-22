@@ -18,7 +18,7 @@ const { expect } = chai;
 const EMPTY_ADDRESS = '0x0000000000000000000000000000000000000000';
 const MAX_SUPPLY = 10000;
 const MAX_PRE_MINT_SUPPLY = 20;
-const MAX_URS_PER_PASS = 20;
+const MAX_URS_PER_PASS = 5;
 const MAX_MINT_PER_TX = 30;
 const TICKET_PRICE_IN_WEI = ethers.utils.parseEther('0.08');
 const OPERATION_SECONDS_FOR_VIP = 3600 * 3;
@@ -1008,17 +1008,17 @@ describe('URSStore', () => {
       totalTickets: number;
       raffleNumber: number;
     }): Promise<void> => {
-      const preMintTasks = new Array(preMintedURS)
-        .fill(null)
-        .map(() => ursStoreContract.preMintURS(EMPTY_ADDRESS));
-      await Promise.all(preMintTasks);
-
       const openingHours = await getCurrentTimestamp();
       await ursStoreContract.setOpeningHours(openingHours);
       await ethers.provider.send('evm_increaseTime', [
         OPERATION_SECONDS_FOR_VIP / 2,
       ]);
       await ethers.provider.send('evm_mine', []);
+
+      const preMintTasks = new Array(preMintedURS)
+        .fill(null)
+        .map(() => ursStoreContract.preMintURS(deployer.address));
+      await Promise.all(preMintTasks);
 
       const passHolder = account1;
       let requiredMintPassAmount = Math.ceil(

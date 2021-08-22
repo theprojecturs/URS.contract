@@ -44,7 +44,7 @@ contract URSStore {
         Mint Pass
      */
     uint256 public newlyMintedURSWithPass = 0;
-    uint256 public constant maxURSPerPass = 20;
+    uint256 public constant maxURSPerPass = 5;
     mapping(address => uint256) public mintedURSOf;
 
     /**
