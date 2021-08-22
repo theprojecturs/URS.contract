@@ -30,7 +30,7 @@ const configs = {
 };
 
 describe('URSStore', () => {
-  let [deployer, account1]: SignerWithAddress[] = [];
+  let [deployer, account1, account2]: SignerWithAddress[] = [];
   let mintPassContract: TestMintPass;
   let ursFactoryContract: URSFactory;
   let ursStoreContract: URSStore;
@@ -44,7 +44,7 @@ describe('URSStore', () => {
   };
 
   beforeEach(async () => {
-    [deployer, account1] = await ethers.getSigners();
+    [deployer, account1, account2] = await ethers.getSigners();
 
     const MintPass = new TestMintPass__factory(deployer);
     mintPassContract = await MintPass.deploy(
@@ -799,6 +799,201 @@ describe('URSStore', () => {
     });
   });
 
+  describe('mintURS', async () => {
+    let firstTwoTicketsHolder: SignerWithAddress;
+    let allTicketsHolder: SignerWithAddress;
+    let invalidTicketHolder: SignerWithAddress;
+
+    beforeEach(async () => {
+      const openingHours = await getCurrentTimestamp();
+      await ursStoreContract.setOpeningHours(openingHours);
+      await ethers.provider.send('evm_increaseTime', [
+        OPERATION_SECONDS_FOR_VIP + OPERATION_SECONDS / 2,
+      ]);
+      await ethers.provider.send('evm_mine', []);
+
+      firstTwoTicketsHolder = account1;
+      allTicketsHolder = deployer;
+      invalidTicketHolder = account2;
+
+      const twoTickets = 2;
+      await ursStoreContract
+        .connect(firstTwoTicketsHolder)
+        .takingTickets(twoTickets, {
+          value: TICKET_PRICE_IN_WEI.mul(twoTickets),
+        });
+
+      const ticketAmount = MAX_SUPPLY - twoTickets;
+      await ursStoreContract
+        .connect(allTicketsHolder)
+        .takingTickets(ticketAmount, {
+          value: TICKET_PRICE_IN_WEI.mul(ticketAmount),
+        });
+
+      const invalidTicket = 1;
+      await ursStoreContract
+        .connect(invalidTicketHolder)
+        .takingTickets(invalidTicket, {
+          value: TICKET_PRICE_IN_WEI.mul(invalidTicket),
+        });
+
+      await ursStoreContract.connect(deployer).runRaffle(1);
+    });
+
+    it("fails if user did not run 'checkMyResult' before", async () => {
+      await expect(ursStoreContract.mintURS()).to.be.revertedWith(
+        'result is not calculated yet'
+      );
+    });
+
+    it('fails if user does not hold any valid ticket', async () => {
+      await ursStoreContract.connect(invalidTicketHolder).checkMyResult();
+
+      await expect(
+        ursStoreContract.connect(invalidTicketHolder).mintURS()
+      ).to.be.revertedWith('No valid tickets');
+    });
+
+    it('mints maxMintPerTx if validTicketAmount exceeds maxMintPerTx', async () => {
+      await ursStoreContract.connect(allTicketsHolder).checkMyResult();
+
+      const ursBalanceBefore = await ursFactoryContract.balanceOf(
+        allTicketsHolder.address
+      );
+      expect(ursBalanceBefore).to.eq(0);
+
+      const resultsBefore = await ursStoreContract.resultOf(
+        allTicketsHolder.address
+      );
+      const validTicketAmountBefore = resultsBefore.validTicketAmount;
+
+      await ursStoreContract.connect(allTicketsHolder).mintURS();
+
+      const ursBalanceAfter = await ursFactoryContract.balanceOf(
+        allTicketsHolder.address
+      );
+      expect(ursBalanceAfter).to.eq(MAX_MINT_PER_TX);
+
+      const resultsAfter = await ursStoreContract.resultOf(
+        allTicketsHolder.address
+      );
+      expect(resultsAfter.validTicketAmount).to.eq(
+        validTicketAmountBefore.sub(MAX_MINT_PER_TX)
+      );
+    });
+
+    it('mints all if validTicketAmount does not exceed maxMintPerTx', async () => {
+      await ursStoreContract.connect(firstTwoTicketsHolder).checkMyResult();
+      const amount = 2;
+
+      const ursBalanceBefore = await ursFactoryContract.balanceOf(
+        firstTwoTicketsHolder.address
+      );
+      expect(ursBalanceBefore).to.eq(0);
+
+      const resultsBefore = await ursStoreContract.resultOf(
+        firstTwoTicketsHolder.address
+      );
+      expect(resultsBefore.validTicketAmount).to.eq(2);
+
+      await ursStoreContract.connect(firstTwoTicketsHolder).mintURS();
+
+      const ursBalanceAfter = await ursFactoryContract.balanceOf(
+        firstTwoTicketsHolder.address
+      );
+      expect(ursBalanceAfter).to.eq(amount);
+
+      const resultsAfter = await ursStoreContract.resultOf(
+        firstTwoTicketsHolder.address
+      );
+      expect(resultsAfter.validTicketAmount).to.eq(0);
+    });
+
+    it("emits 'MintURS' event", async () => {
+      await ursStoreContract.connect(firstTwoTicketsHolder).checkMyResult();
+
+      const amount = 2;
+      await expect(ursStoreContract.connect(firstTwoTicketsHolder).mintURS())
+        .to.emit(ursStoreContract, 'MintURS')
+        .withArgs(firstTwoTicketsHolder.address, amount);
+
+      await ursStoreContract.connect(allTicketsHolder).checkMyResult();
+
+      await expect(ursStoreContract.connect(allTicketsHolder).mintURS())
+        .to.emit(ursStoreContract, 'MintURS')
+        .withArgs(allTicketsHolder.address, MAX_MINT_PER_TX);
+    });
+  });
+
+  describe('withdraw', async () => {
+    it("fails for non-owner's request", async () => {
+      const nonOwner = account1;
+
+      await expect(
+        ursStoreContract.connect(nonOwner).withdraw(nonOwner.address)
+      ).to.be.revertedWith('caller is not the owner');
+    });
+
+    it('sends nothing if newlyMintedURS is zero', async () => {
+      const emptyAddressBalanceBefore = await ethers.provider.getBalance(
+        EMPTY_ADDRESS
+      );
+
+      await expect(ursStoreContract.connect(deployer).withdraw(EMPTY_ADDRESS))
+        .not.to.be.reverted;
+
+      const emptyAddressBalanceAfter = await ethers.provider.getBalance(
+        EMPTY_ADDRESS
+      );
+      expect(emptyAddressBalanceAfter).to.eq(emptyAddressBalanceBefore);
+    });
+
+    it('sends appropriate eth value', async () => {
+      const openingHours = await getCurrentTimestamp();
+      await ursStoreContract.setOpeningHours(openingHours);
+      await ethers.provider.send('evm_increaseTime', [
+        OPERATION_SECONDS_FOR_VIP + OPERATION_SECONDS / 2,
+      ]);
+      await ethers.provider.send('evm_mine', []);
+
+      const newURSAmount = 5;
+      const ursHolder = account1;
+
+      await ursStoreContract.connect(ursHolder).takingTickets(newURSAmount, {
+        value: TICKET_PRICE_IN_WEI.mul(newURSAmount),
+      });
+
+      await ursStoreContract.connect(deployer).takingTickets(MAX_SUPPLY, {
+        value: TICKET_PRICE_IN_WEI.mul(MAX_SUPPLY),
+      });
+
+      await ursStoreContract.connect(deployer).runRaffle(1);
+
+      await ursStoreContract.connect(ursHolder).checkMyResult();
+      await ursStoreContract.connect(ursHolder).mintURS();
+
+      const emptyAddressBalanceBefore = await ethers.provider.getBalance(
+        EMPTY_ADDRESS
+      );
+
+      await expect(ursStoreContract.connect(deployer).withdraw(EMPTY_ADDRESS))
+        .not.to.be.reverted;
+
+      const emptyAddressBalanceAfter = await ethers.provider.getBalance(
+        EMPTY_ADDRESS
+      );
+      expect(emptyAddressBalanceAfter).to.eq(
+        emptyAddressBalanceBefore.add(TICKET_PRICE_IN_WEI.mul(newURSAmount))
+      );
+    });
+
+    it("emits 'Withdraw' event", async () => {
+      await expect(ursStoreContract.withdraw(deployer.address)).to.emit(
+        ursStoreContract,
+        'Withdraw'
+      );
+    });
+  });
   /**
   describe('sets correctly with numbers', async () => {
       it('preMintedURS: 0, newlyMintedURSWithPass: 0, totalTickets: 10k, raffleNumber: 1', async () => {
