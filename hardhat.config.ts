@@ -47,6 +47,9 @@ const config: HardhatUserConfig = {
     runOnCompile: onlyRunInFullTest(),
     disambiguatePaths: false,
   },
+  mocha: {
+    timeout: 40000,
+  },
 };
 
 export default config;
