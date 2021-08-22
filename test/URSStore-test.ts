@@ -1060,8 +1060,8 @@ describe('URSStore', () => {
     };
 
     await Promise.all(
-      testSets.map((testSet) => {
-        it(testSetForPrint(testSet), async () => {
+      testSets.map((testSet, i) => {
+        it(testSetForPrint({ testSet, count: i }), async () => {
           await prepareEnvironments({
             ...testSet,
           });

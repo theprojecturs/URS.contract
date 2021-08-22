@@ -18,9 +18,15 @@ export interface TestSet {
 
 export const testSets: TestSet[] = calcData;
 
-export const testSetForPrint = (testSet: TestSet) => {
+export const testSetForPrint = ({
+  count,
+  testSet,
+}: {
+  count: number;
+  testSet: TestSet;
+}) => {
   return Object.keys(testSet).reduce(
     (acc, v) => `${acc}, ${v}: ${testSet[v as keyof TestSet]}`,
-    ''
+    `${count}`
   );
 };
