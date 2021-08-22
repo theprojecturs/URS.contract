@@ -93,6 +93,7 @@ describe('URSStore', () => {
       expect(await ursStoreContract.raffleNumber()).to.eq(0);
       expect(await ursStoreContract.offsetInSlot()).to.eq(0);
       expect(await ursStoreContract.slotSize()).to.eq(0);
+      expect(await ursStoreContract.lastTargetIndex()).to.eq(0);
       expect(await ursStoreContract.mintedURSOf(deployer.address)).to.eq(0);
 
       const ticket = await ursStoreContract.ticketsOf(deployer.address);
@@ -692,6 +693,109 @@ describe('URSStore', () => {
       await expect(ursStoreContract.runRaffle(raffleNumber))
         .to.emit(ursStoreContract, 'RunRaffle')
         .withArgs(raffleNumber);
+    });
+  });
+
+  describe('checkMyResult', async () => {
+    let ticketHolder: SignerWithAddress;
+
+    beforeEach(async () => {
+      const openingHours = await getCurrentTimestamp();
+      await ursStoreContract.setOpeningHours(openingHours);
+      await ethers.provider.send('evm_increaseTime', [
+        OPERATION_SECONDS_FOR_VIP + OPERATION_SECONDS / 2,
+      ]);
+      await ethers.provider.send('evm_mine', []);
+
+      ticketHolder = deployer;
+      const ticketAmount = MAX_SUPPLY;
+      await ursStoreContract.connect(deployer).takingTickets(ticketAmount, {
+        value: TICKET_PRICE_IN_WEI.mul(MAX_SUPPLY),
+      });
+    });
+
+    it('fails if raffleNumber is not set', async () => {
+      await expect(ursStoreContract.checkMyResult()).to.be.revertedWith(
+        'raffle number is not set yet'
+      );
+    });
+
+    it('fails if ticket amount is zero', async () => {
+      const taker = account1;
+
+      const myTickets = await ursStoreContract.ticketsOf(taker.address);
+      expect(myTickets.amount).to.eq(0);
+
+      await ursStoreContract.runRaffle(5);
+      await expect(
+        ursStoreContract.connect(taker).checkMyResult()
+      ).to.be.revertedWith('No available ticket');
+    });
+
+    it('fails if user has already checked', async () => {
+      const myTickets = await ursStoreContract.ticketsOf(ticketHolder.address);
+      expect(myTickets.amount).not.to.eq(0);
+
+      await ursStoreContract.runRaffle(5);
+      await expect(ursStoreContract.connect(ticketHolder).checkMyResult()).not
+        .to.be.reverted;
+
+      await expect(
+        ursStoreContract.connect(ticketHolder).checkMyResult()
+      ).to.be.revertedWith('Already checked');
+    });
+
+    it('returns changes', async () => {
+      const taker = account1;
+
+      // It can not be picked because 'ticketHolder' already picked MAX_SUPPLY
+      const ticketAmount = 1;
+      const totalPrice = TICKET_PRICE_IN_WEI.mul(ticketAmount);
+      await ursStoreContract.connect(taker).takingTickets(ticketAmount, {
+        value: totalPrice,
+      });
+
+      const myTickets = await ursStoreContract.ticketsOf(taker.address);
+      expect(myTickets.amount).to.eq(ticketAmount);
+
+      const ethBalanceOfContractBefore = await ethers.provider.getBalance(
+        ursStoreContract.address
+      );
+      const ethBalanceOfTakerBefore = await ethers.provider.getBalance(
+        taker.address
+      );
+
+      await ursStoreContract.runRaffle(5);
+      await expect(
+        ursStoreContract.connect(taker).checkMyResult({ gasPrice: 0 })
+      ).not.to.be.reverted;
+
+      const ethBalanceOfContractAfter = await ethers.provider.getBalance(
+        ursStoreContract.address
+      );
+      const ethBalanceOfTakerAfter = await ethers.provider.getBalance(
+        taker.address
+      );
+      expect(ethBalanceOfContractAfter).to.eq(
+        ethBalanceOfContractBefore.sub(totalPrice)
+      );
+      expect(ethBalanceOfTakerAfter).to.eq(
+        ethBalanceOfTakerBefore.add(totalPrice)
+      );
+    });
+
+    it("emits 'SetResult' event", async () => {
+      const taker = account1;
+      const ticketAmount = 1;
+      const totalPrice = TICKET_PRICE_IN_WEI.mul(ticketAmount);
+      await ursStoreContract.connect(taker).takingTickets(ticketAmount, {
+        value: totalPrice,
+      });
+
+      await ursStoreContract.runRaffle(5);
+      await expect(ursStoreContract.connect(taker).checkMyResult())
+        .to.emit(ursStoreContract, 'SetResult')
+        .withArgs(taker.address, 0, totalPrice);
     });
   });
 
