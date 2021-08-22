@@ -3,8 +3,8 @@ import { ethers } from 'hardhat';
 import {
   URSFactory,
   URSFactory__factory,
-  TestURSStore,
-  TestURSStore__factory,
+  TestURSStoreForFactory as TestURSStore,
+  TestURSStoreForFactory__factory as TestURSStore__factory,
 } from '../types';
 import { SignerWithAddress } from '@nomiclabs/hardhat-ethers/signers';
 import { solidity } from 'ethereum-waffle';

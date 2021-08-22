@@ -3,8 +3,8 @@ import { ethers } from 'hardhat';
 import {
   URSFactory,
   URSFactory__factory,
-  URSStore,
-  URSStore__factory,
+  TestURSStore as URSStore,
+  TestURSStore__factory as URSStore__factory,
   TestMintPass,
   TestMintPass__factory,
 } from '../types';
