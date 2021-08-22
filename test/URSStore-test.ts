@@ -10,6 +10,7 @@ import {
 } from '../types';
 import { SignerWithAddress } from '@nomiclabs/hardhat-ethers/signers';
 import { solidity } from 'ethereum-waffle';
+import { testSets, testSetForPrint } from './utils/CalcHelper';
 
 chai.use(solidity);
 const { expect } = chai;
@@ -1058,52 +1059,6 @@ describe('URSStore', () => {
       await ursStoreContract.runRaffle(raffleNumber);
     };
 
-    interface TestSet {
-      preMintedURS: number;
-      newlyMintedURSWithPass: number;
-      totalTickets: number;
-      raffleNumber: number;
-      slotSizeExpected: number;
-      offsetInSlotExpected: number;
-      lastTargetIndexExpected: number;
-    }
-    const testSets: TestSet[] = [
-      {
-        preMintedURS: 0,
-        newlyMintedURSWithPass: 0,
-        totalTickets: 10000,
-        raffleNumber: 1,
-        slotSizeExpected: 1,
-        offsetInSlotExpected: 0,
-        lastTargetIndexExpected: 9999,
-      },
-      {
-        preMintedURS: 0,
-        newlyMintedURSWithPass: 5,
-        totalTickets: 10000,
-        raffleNumber: 1,
-        slotSizeExpected: 1,
-        offsetInSlotExpected: 0,
-        lastTargetIndexExpected: 9994,
-      },
-      {
-        preMintedURS: 0,
-        newlyMintedURSWithPass: 0,
-        totalTickets: 20000,
-        raffleNumber: 2,
-        slotSizeExpected: 2,
-        offsetInSlotExpected: 0,
-        lastTargetIndexExpected: 19999,
-      },
-    ];
-
-    const testSetForPrint = (testSet: TestSet) => {
-      return Object.keys(testSet).reduce(
-        (acc, v) => `${acc}, ${v}: ${testSet[v as keyof TestSet]}`,
-        ''
-      );
-    };
-
     await Promise.all(
       testSets.map((testSet) => {
         it(testSetForPrint(testSet), async () => {
@@ -1120,6 +1075,16 @@ describe('URSStore', () => {
           expect(await ursStoreContract.lastTargetIndex()).to.eq(
             testSet.lastTargetIndexExpected
           );
+
+          const validTicketAmount =
+            await ursStoreContract.testCalculateValidTicketAmount(
+              testSet.myIndex,
+              testSet.myAmount,
+              testSet.slotSizeExpected,
+              testSet.offsetInSlotExpected,
+              testSet.lastTargetIndexExpected
+            );
+          expect(validTicketAmount).to.eq(testSet.validTicketAmountExpected);
         });
       })
     );
