@@ -1060,34 +1060,34 @@ describe('URSStore', () => {
       await ursStoreContract.runRaffle(raffleNumber);
     };
 
-    // await Promise.all(
-    //   testSets.map((testSet, i) => {
-    //     it(testSetForPrint({ testSet, count: i }), async () => {
-    //       await prepareEnvironments({
-    //         ...testSet,
-    //       });
+    await Promise.all(
+      testSets.map((testSet, i) => {
+        it(testSetForPrint({ testSet, count: i }), async () => {
+          await prepareEnvironments({
+            ...testSet,
+          });
 
-    //       expect(await ursStoreContract.slotSize()).to.eq(
-    //         testSet.slotSizeExpected
-    //       );
-    //       expect(await ursStoreContract.offsetInSlot()).to.eq(
-    //         testSet.offsetInSlotExpected
-    //       );
-    //       expect(await ursStoreContract.lastTargetIndex()).to.eq(
-    //         testSet.lastTargetIndexExpected
-    //       );
+          expect(await ursStoreContract.slotSize()).to.eq(
+            testSet.slotSizeExpected
+          );
+          expect(await ursStoreContract.offsetInSlot()).to.eq(
+            testSet.offsetInSlotExpected
+          );
+          expect(await ursStoreContract.lastTargetIndex()).to.eq(
+            testSet.lastTargetIndexExpected
+          );
 
-    //       const validTicketAmount =
-    //         await ursStoreContract.testCalculateValidTicketAmount(
-    //           testSet.myIndex,
-    //           testSet.myAmount,
-    //           testSet.slotSizeExpected,
-    //           testSet.offsetInSlotExpected,
-    //           testSet.lastTargetIndexExpected
-    //         );
-    //       expect(validTicketAmount).to.eq(testSet.validTicketAmountExpected);
-    //     });
-    //   })
-    // );
+          const validTicketAmount =
+            await ursStoreContract.testCalculateValidTicketAmount(
+              testSet.myIndex,
+              testSet.myAmount,
+              testSet.slotSizeExpected,
+              testSet.offsetInSlotExpected,
+              testSet.lastTargetIndexExpected
+            );
+          expect(validTicketAmount).to.eq(testSet.validTicketAmountExpected);
+        });
+      })
+    );
   });
 });
