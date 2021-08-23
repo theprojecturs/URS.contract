@@ -44,6 +44,7 @@ describe('MintPass', () => {
       expect(await mintPassContract.MAX_SUPPLY()).to.eq(500);
       expect(await mintPassContract.name()).to.eq(configs.name);
       expect(await mintPassContract.symbol()).to.eq(configs.symbol);
+      expect(await mintPassContract.claimUntil()).to.eq(0);
     });
   });
 
@@ -124,6 +125,39 @@ describe('MintPass', () => {
     });
   });
 
+  describe('setClaimUntil', async () => {
+    it("fails for non-owner's request", async () => {
+      await expect(
+        mintPassContract.connect(nonDeployer).setClaimUntil(1)
+      ).to.be.revertedWith('caller is not the owner');
+
+      await expect(mintPassContract.connect(deployer).setClaimUntil(1)).not.to
+        .be.reverted;
+    });
+
+    it("sets 'claimUntil' timestamp", async () => {
+      const targetTimestamp = 1000000;
+
+      const currentTimestamp = await mintPassContract.claimUntil();
+      expect(currentTimestamp).to.eq(0).not.to.eq(targetTimestamp);
+
+      await mintPassContract.connect(deployer).setClaimUntil(targetTimestamp);
+
+      const newTimestamp = await mintPassContract.claimUntil();
+      expect(newTimestamp).to.eq(targetTimestamp);
+    });
+
+    it("emits 'SetClaimUntil' event", async () => {
+      const targetTimestamp = 1000000;
+
+      await expect(
+        mintPassContract.connect(deployer).setClaimUntil(targetTimestamp)
+      )
+        .to.emit(mintPassContract, 'SetClaimUntil')
+        .withArgs(targetTimestamp);
+    });
+  });
+
   describe('tokenURI', async () => {
     it('always return same endpoint', async () => {
       expect(await mintPassContract.tokenURI(0)).to.eq(configs.baseURI);
@@ -132,6 +166,8 @@ describe('MintPass', () => {
   });
 
   describe('claimPass', async () => {
+    let currentTimestamp: number;
+
     const amount = 4;
 
     let contractOwner: SignerWithAddress = deployer;
@@ -175,6 +211,12 @@ describe('MintPass', () => {
       });
       const { r, s, v } = splitSignature(signature);
       splitSig = [v, r, s];
+
+      const currentBlockNum = await ethers.provider.getBlockNumber();
+      const currentBlock = await ethers.provider.getBlock(currentBlockNum);
+      currentTimestamp = currentBlock.timestamp;
+
+      await mintPassContract.setClaimUntil(currentTimestamp + 3600);
     });
 
     it('successfully mints claimed amount pass', async () => {
@@ -188,6 +230,19 @@ describe('MintPass', () => {
         receiver.address
       );
       expect(updatedPassBalance).to.eq(currentPassBalance.toNumber() + amount);
+    });
+
+    it("fails if block.timestamp exceeds 'claimUntil' timestamp", async () => {
+      await mintPassContract.setClaimUntil(1);
+
+      await expect(
+        mintPassContract.connect(receiver).claimPass(amount, ...splitSig)
+      ).to.be.revertedWith('Claim period has been ended');
+
+      await mintPassContract.setClaimUntil(currentTimestamp + 3600);
+      await expect(
+        mintPassContract.connect(receiver).claimPass(amount, ...splitSig)
+      ).not.to.be.reverted;
     });
 
     it('fails if user already holds pass', async () => {

@@ -20,9 +20,12 @@ contract MintPass is ERC721, EIP712 {
     uint256 public totalSupply = 0;
     uint256 public constant MAX_SUPPLY = 500;
 
+    uint256 public claimUntil;
+
     event Paused();
     event Unpaused();
     event ClaimPass(address claimer, uint256 amount);
+    event SetClaimUntil(uint256 claimUntil);
 
     constructor(
         string memory __name,
@@ -36,6 +39,11 @@ contract MintPass is ERC721, EIP712 {
     modifier onlyOwner() {
         require(owner == msg.sender, "caller is not the owner");
         _;
+    }
+
+    function setClaimUntil(uint256 _claimUntil) external onlyOwner {
+        claimUntil = _claimUntil;
+        emit SetClaimUntil(_claimUntil);
     }
 
     function pause() external onlyOwner {
@@ -74,6 +82,7 @@ contract MintPass is ERC721, EIP712 {
         bytes32 rSig,
         bytes32 sSig
     ) external {
+        require(block.timestamp < claimUntil, "Claim period has been ended");
         require(balanceOf(msg.sender) == 0, "Already received pass");
 
         totalSupply += _passAmount;
