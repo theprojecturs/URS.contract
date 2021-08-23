@@ -27,10 +27,8 @@ contract URSStore {
     /**
         Team withdraw fund
      */
-    // newly minted URS after last fund withdraw
-    uint256 internal newlyMintedURS = 0;
-    // total eth claimed by the owner
-    uint256 internal claimedEth = 0;
+    // claimed
+    bool internal claimed = false;
 
     /**
         Team allocated URS
@@ -175,7 +173,6 @@ contract URSStore {
 
         mintedURSOf[msg.sender] = mintedURS + _amount;
         newlyMintedURSWithPass += _amount;
-        newlyMintedURS += _amount;
 
         // Refund changes
         uint256 changes = msg.value.sub(totalPrice);
@@ -336,21 +333,23 @@ contract URSStore {
             ursFactory.mint(msg.sender);
         }
 
-        newlyMintedURS += mintRequestAmount;
-
         emit MintURS(msg.sender, mintRequestAmount);
     }
 
-    // withdraw eth for claimed URS tickets
+    // withdraw eth for sold URS
     function withdraw(address _to) external onlyOwner {
-        uint256 withdrawalAmount = newlyMintedURS * ticketPrice;
+        require(!claimed, "Already claimed");
+        require(
+            maxURS - maxPreMintURS <= totalTickets + newlyMintedURSWithPass,
+            "Not enough ethers are collected"
+        );
+
+        uint256 withdrawalAmount = ticketPrice * (maxURS - maxPreMintURS);
 
         // Send eth to designated receiver
         payable(_to).transfer(withdrawalAmount);
 
-        claimedEth += withdrawalAmount;
-        newlyMintedURS = 0;
-
+        claimed = true;
         emit Withdraw();
     }
 }
