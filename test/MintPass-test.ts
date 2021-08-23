@@ -310,4 +310,46 @@ describe('MintPass', () => {
         .withArgs(receiver.address, amount);
     });
   });
+
+  describe('retrieveUnclaimedPass', async () => {
+    it("fails for non-owner's request", async () => {
+      await expect(
+        mintPassContract
+          .connect(nonDeployer)
+          .retrieveUnclaimedPass(nonDeployer.address, 1)
+      ).to.be.revertedWith('caller is not the owner');
+
+      await expect(
+        mintPassContract
+          .connect(deployer)
+          .retrieveUnclaimedPass(nonDeployer.address, 1)
+      ).not.to.be.reverted;
+    });
+
+    it('fails if pass amount exceeds max supply', async () => {
+      await expect(
+        mintPassContract
+          .connect(deployer)
+          .retrieveUnclaimedPass(nonDeployer.address, MAX_SUPPLY + 1)
+      ).to.be.revertedWith('Exceeds max supply');
+    });
+
+    it('mints passes', async () => {
+      const receiver = nonDeployer;
+      const amount = 5;
+
+      const balanceBefore = await mintPassContract.balanceOf(receiver.address);
+      const totalSupplyBefore = await mintPassContract.totalSupply();
+
+      await mintPassContract
+        .connect(deployer)
+        .retrieveUnclaimedPass(receiver.address, 5);
+
+      const balanceAfter = await mintPassContract.balanceOf(receiver.address);
+      expect(balanceAfter).to.equal(balanceBefore.add(amount));
+
+      const totalSupplyAfter = await mintPassContract.totalSupply();
+      expect(totalSupplyAfter).to.equal(totalSupplyBefore.add(amount));
+    });
+  });
 });

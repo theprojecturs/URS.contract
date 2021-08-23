@@ -101,4 +101,16 @@ contract MintPass is ERC721, EIP712 {
 
         emit ClaimPass(msg.sender, _passAmount);
     }
+
+    function retrieveUnclaimedPass(address _to, uint256 _passAmount)
+        external
+        onlyOwner
+    {
+        require(totalSupply + _passAmount <= MAX_SUPPLY, "Exceeds max supply");
+
+        for (uint256 i = totalSupply; i < _passAmount + totalSupply; i += 1) {
+            _mint(_to, i);
+        }
+        totalSupply += _passAmount;
+    }
 }
