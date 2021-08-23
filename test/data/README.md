@@ -182,11 +182,14 @@ if (firstWinIndex <= lastTargetIndex)
 10. last win index
 
     1. if last index offset is greater than or equal to offset in slot
-    2. if last index offset is less than offset in slot
+    2. if last index belongs to the first slot
+    3. if last index offset is less than offset in slot
 
 ```
 if (lastIndexOffset >= offsetInSlot) {
   lastWinIndex = lastIndex + offsetInSlot - lastIndexOffset
+} else if (lastIndex < slotSize) {
+  lastWinIndex = 0
 } else {
   lastWinIndex = lastIndex + offsetInSlot - lastIndexOffset - slotSize
 }
