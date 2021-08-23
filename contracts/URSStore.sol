@@ -149,8 +149,8 @@ contract URSStore {
                 openingHours + operationSecondsForVIP + operationSeconds,
             "Not available after ticketing period"
         );
-        ursFactory.mint(to);
         preMintedURS += 1;
+        ursFactory.mint(to);
     }
 
     function mintWithPass(uint256 _amount) external payable whenVIPOpened {
