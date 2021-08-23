@@ -1,6 +1,6 @@
 import chai from 'chai';
 import { ethers } from 'hardhat';
-import { TestMintPass, TestMintPass__factory } from '../types';
+import { TestPass, TestPass__factory } from '../types';
 import { SignerWithAddress } from '@nomiclabs/hardhat-ethers/signers';
 import { solidity } from 'ethereum-waffle';
 import { signTypedData, DomainType, splitSignature } from './utils/EIP712';
@@ -15,20 +15,20 @@ const configs = {
   baseURI: 'test.com',
 };
 
-describe('MintPass', () => {
+describe('Pass', () => {
   let [
     deployer,
     nonDeployer,
     tokenHolder,
     nonTokenHolder,
   ]: SignerWithAddress[] = [];
-  let mintPassContract: TestMintPass;
+  let passContract: TestPass;
 
   beforeEach(async () => {
     [deployer, nonDeployer, tokenHolder, nonTokenHolder] =
       await ethers.getSigners();
-    const MintPassFactory = new TestMintPass__factory(deployer);
-    mintPassContract = await MintPassFactory.deploy(
+    const PassFactory = new TestPass__factory(deployer);
+    passContract = await PassFactory.deploy(
       configs.name,
       configs.symbol,
       configs.baseURI
@@ -37,47 +37,42 @@ describe('MintPass', () => {
 
   describe('constructor', async () => {
     it('Should be initialized successfully', async () => {
-      expect(await mintPassContract.owner()).to.eq(deployer.address);
-      expect(await mintPassContract.paused()).to.eq(true);
-      expect(await mintPassContract.baseURI()).to.eq(configs.baseURI);
-      expect(await mintPassContract.totalSupply()).to.eq(0);
-      expect(await mintPassContract.MAX_SUPPLY()).to.eq(500);
-      expect(await mintPassContract.name()).to.eq(configs.name);
-      expect(await mintPassContract.symbol()).to.eq(configs.symbol);
-      expect(await mintPassContract.claimUntil()).to.eq(0);
+      expect(await passContract.owner()).to.eq(deployer.address);
+      expect(await passContract.paused()).to.eq(true);
+      expect(await passContract.baseURI()).to.eq(configs.baseURI);
+      expect(await passContract.totalSupply()).to.eq(0);
+      expect(await passContract.MAX_SUPPLY()).to.eq(500);
+      expect(await passContract.name()).to.eq(configs.name);
+      expect(await passContract.symbol()).to.eq(configs.symbol);
+      expect(await passContract.claimUntil()).to.eq(0);
     });
   });
 
   describe('pause', async () => {
     it('can be set by owner only', async () => {
       await expect(
-        mintPassContract.connect(nonDeployer).pause()
+        passContract.connect(nonDeployer).pause()
       ).to.be.revertedWith('caller is not the owner');
 
-      await expect(mintPassContract.connect(deployer).pause()).not.to.be
-        .reverted;
+      await expect(passContract.connect(deployer).pause()).not.to.be.reverted;
     });
 
     it("emit 'Paused' event", async () => {
-      await expect(mintPassContract.connect(deployer).pause()).to.emit(
-        mintPassContract,
+      await expect(passContract.connect(deployer).pause()).to.emit(
+        passContract,
         'Paused'
       );
     });
 
     it('prevents token transfer', async () => {
       const tokenId = 10;
-      await mintPassContract
-        .connect(deployer)
-        .mint(tokenHolder.address, tokenId);
-      expect(await mintPassContract.ownerOf(tokenId)).to.eq(
-        tokenHolder.address
-      );
+      await passContract.connect(deployer).mint(tokenHolder.address, tokenId);
+      expect(await passContract.ownerOf(tokenId)).to.eq(tokenHolder.address);
 
-      expect(await mintPassContract.paused()).to.eq(true);
+      expect(await passContract.paused()).to.eq(true);
 
       await expect(
-        mintPassContract
+        passContract
           .connect(tokenHolder)
           .transferFrom(tokenHolder.address, nonTokenHolder.address, tokenId)
       ).to.be.revertedWith('token transfer while paused');
@@ -87,63 +82,56 @@ describe('MintPass', () => {
   describe('unpause', async () => {
     it('can be set by owner only', async () => {
       await expect(
-        mintPassContract.connect(nonDeployer).unpause()
+        passContract.connect(nonDeployer).unpause()
       ).to.be.revertedWith('caller is not the owner');
 
-      await expect(mintPassContract.connect(deployer).unpause()).not.to.be
-        .reverted;
+      await expect(passContract.connect(deployer).unpause()).not.to.be.reverted;
     });
 
     it("emit 'Unpaused' event", async () => {
-      await expect(mintPassContract.connect(deployer).unpause()).to.emit(
-        mintPassContract,
+      await expect(passContract.connect(deployer).unpause()).to.emit(
+        passContract,
         'Unpaused'
       );
     });
 
     it('allow token transfer', async () => {
       const tokenId = 10;
-      await mintPassContract
-        .connect(deployer)
-        .mint(tokenHolder.address, tokenId);
-      expect(await mintPassContract.ownerOf(tokenId)).to.eq(
-        tokenHolder.address
-      );
+      await passContract.connect(deployer).mint(tokenHolder.address, tokenId);
+      expect(await passContract.ownerOf(tokenId)).to.eq(tokenHolder.address);
 
-      await mintPassContract.connect(deployer).unpause();
-      expect(await mintPassContract.paused()).to.eq(false);
+      await passContract.connect(deployer).unpause();
+      expect(await passContract.paused()).to.eq(false);
 
       await expect(
-        mintPassContract
+        passContract
           .connect(tokenHolder)
           .transferFrom(tokenHolder.address, nonTokenHolder.address, tokenId)
       ).not.to.be.reverted;
 
-      expect(await mintPassContract.ownerOf(tokenId)).to.eq(
-        nonTokenHolder.address
-      );
+      expect(await passContract.ownerOf(tokenId)).to.eq(nonTokenHolder.address);
     });
   });
 
   describe('setClaimUntil', async () => {
     it("fails for non-owner's request", async () => {
       await expect(
-        mintPassContract.connect(nonDeployer).setClaimUntil(1)
+        passContract.connect(nonDeployer).setClaimUntil(1)
       ).to.be.revertedWith('caller is not the owner');
 
-      await expect(mintPassContract.connect(deployer).setClaimUntil(1)).not.to
-        .be.reverted;
+      await expect(passContract.connect(deployer).setClaimUntil(1)).not.to.be
+        .reverted;
     });
 
     it("sets 'claimUntil' timestamp", async () => {
       const targetTimestamp = 1000000;
 
-      const currentTimestamp = await mintPassContract.claimUntil();
+      const currentTimestamp = await passContract.claimUntil();
       expect(currentTimestamp).to.eq(0).not.to.eq(targetTimestamp);
 
-      await mintPassContract.connect(deployer).setClaimUntil(targetTimestamp);
+      await passContract.connect(deployer).setClaimUntil(targetTimestamp);
 
-      const newTimestamp = await mintPassContract.claimUntil();
+      const newTimestamp = await passContract.claimUntil();
       expect(newTimestamp).to.eq(targetTimestamp);
     });
 
@@ -151,17 +139,17 @@ describe('MintPass', () => {
       const targetTimestamp = 1000000;
 
       await expect(
-        mintPassContract.connect(deployer).setClaimUntil(targetTimestamp)
+        passContract.connect(deployer).setClaimUntil(targetTimestamp)
       )
-        .to.emit(mintPassContract, 'SetClaimUntil')
+        .to.emit(passContract, 'SetClaimUntil')
         .withArgs(targetTimestamp);
     });
   });
 
   describe('tokenURI', async () => {
     it('always return same endpoint', async () => {
-      expect(await mintPassContract.tokenURI(0)).to.eq(configs.baseURI);
-      expect(await mintPassContract.tokenURI(1)).to.eq(configs.baseURI);
+      expect(await passContract.tokenURI(0)).to.eq(configs.baseURI);
+      expect(await passContract.tokenURI(1)).to.eq(configs.baseURI);
     });
   });
 
@@ -186,7 +174,7 @@ describe('MintPass', () => {
         name: configs.name,
         version: '1',
         chainId: 31337, // hardhat test chainId
-        verifyingContract: mintPassContract.address,
+        verifyingContract: passContract.address,
       };
       types = {
         PassReq: [
@@ -216,48 +204,44 @@ describe('MintPass', () => {
       const currentBlock = await ethers.provider.getBlock(currentBlockNum);
       currentTimestamp = currentBlock.timestamp;
 
-      await mintPassContract.setClaimUntil(currentTimestamp + 3600);
+      await passContract.setClaimUntil(currentTimestamp + 3600);
     });
 
     it('successfully mints claimed amount pass', async () => {
-      const currentPassBalance = await mintPassContract.balanceOf(
-        receiver.address
-      );
+      const currentPassBalance = await passContract.balanceOf(receiver.address);
 
-      await mintPassContract.connect(receiver).claimPass(amount, ...splitSig);
+      await passContract.connect(receiver).claimPass(amount, ...splitSig);
 
-      const updatedPassBalance = await mintPassContract.balanceOf(
-        receiver.address
-      );
+      const updatedPassBalance = await passContract.balanceOf(receiver.address);
       expect(updatedPassBalance).to.eq(currentPassBalance.toNumber() + amount);
     });
 
     it("fails if block.timestamp exceeds 'claimUntil' timestamp", async () => {
-      await mintPassContract.setClaimUntil(1);
+      await passContract.setClaimUntil(1);
 
       await expect(
-        mintPassContract.connect(receiver).claimPass(amount, ...splitSig)
+        passContract.connect(receiver).claimPass(amount, ...splitSig)
       ).to.be.revertedWith('Claim period has been ended');
 
-      await mintPassContract.setClaimUntil(currentTimestamp + 3600);
+      await passContract.setClaimUntil(currentTimestamp + 3600);
       await expect(
-        mintPassContract.connect(receiver).claimPass(amount, ...splitSig)
+        passContract.connect(receiver).claimPass(amount, ...splitSig)
       ).not.to.be.reverted;
     });
 
     it('fails if user already holds pass', async () => {
-      await mintPassContract.connect(receiver).claimPass(amount, ...splitSig);
-      const passBalance = await mintPassContract.balanceOf(receiver.address);
+      await passContract.connect(receiver).claimPass(amount, ...splitSig);
+      const passBalance = await passContract.balanceOf(receiver.address);
       expect(passBalance).to.eq(amount).not.to.eq(0);
 
       await expect(
-        mintPassContract.connect(receiver).claimPass(amount, ...splitSig)
+        passContract.connect(receiver).claimPass(amount, ...splitSig)
       ).to.be.revertedWith('Already received pass');
     });
 
     it('fails if unmatched amount is sent', async () => {
       await expect(
-        mintPassContract.connect(receiver).claimPass(amount + 1, ...splitSig)
+        passContract.connect(receiver).claimPass(amount + 1, ...splitSig)
       ).to.be.revertedWith('Signature is not from the owner');
     });
 
@@ -274,13 +258,13 @@ describe('MintPass', () => {
       const { r, s, v } = splitSignature(signature);
 
       await expect(
-        mintPassContract.connect(receiver).claimPass(amount + 1, v, r, s)
+        passContract.connect(receiver).claimPass(amount + 1, v, r, s)
       ).to.be.revertedWith('Signature is not from the owner');
     });
 
     it('fails if receiver and transaction sender are different', async () => {
       await expect(
-        mintPassContract.connect(deployer).claimPass(amount, ...splitSig)
+        passContract.connect(deployer).claimPass(amount, ...splitSig)
       ).to.be.revertedWith('Signature is not from the owner');
     });
 
@@ -298,15 +282,15 @@ describe('MintPass', () => {
       const { r, s, v } = splitSignature(signature);
 
       await expect(
-        mintPassContract.connect(receiver).claimPass(attemptAmount, v, r, s)
+        passContract.connect(receiver).claimPass(attemptAmount, v, r, s)
       ).to.be.revertedWith('Exceeds max supply');
     });
 
     it('emits ClaimPass event', async () => {
       await expect(
-        mintPassContract.connect(receiver).claimPass(amount, ...splitSig)
+        passContract.connect(receiver).claimPass(amount, ...splitSig)
       )
-        .to.emit(mintPassContract, 'ClaimPass')
+        .to.emit(passContract, 'ClaimPass')
         .withArgs(receiver.address, amount);
     });
   });
@@ -314,13 +298,13 @@ describe('MintPass', () => {
   describe('retrieveUnclaimedPass', async () => {
     it("fails for non-owner's request", async () => {
       await expect(
-        mintPassContract
+        passContract
           .connect(nonDeployer)
           .retrieveUnclaimedPass(nonDeployer.address, 1)
       ).to.be.revertedWith('caller is not the owner');
 
       await expect(
-        mintPassContract
+        passContract
           .connect(deployer)
           .retrieveUnclaimedPass(nonDeployer.address, 1)
       ).not.to.be.reverted;
@@ -328,7 +312,7 @@ describe('MintPass', () => {
 
     it('fails if pass amount exceeds max supply', async () => {
       await expect(
-        mintPassContract
+        passContract
           .connect(deployer)
           .retrieveUnclaimedPass(nonDeployer.address, MAX_SUPPLY + 1)
       ).to.be.revertedWith('Exceeds max supply');
@@ -338,17 +322,17 @@ describe('MintPass', () => {
       const receiver = nonDeployer;
       const amount = 5;
 
-      const balanceBefore = await mintPassContract.balanceOf(receiver.address);
-      const totalSupplyBefore = await mintPassContract.totalSupply();
+      const balanceBefore = await passContract.balanceOf(receiver.address);
+      const totalSupplyBefore = await passContract.totalSupply();
 
-      await mintPassContract
+      await passContract
         .connect(deployer)
         .retrieveUnclaimedPass(receiver.address, 5);
 
-      const balanceAfter = await mintPassContract.balanceOf(receiver.address);
+      const balanceAfter = await passContract.balanceOf(receiver.address);
       expect(balanceAfter).to.equal(balanceBefore.add(amount));
 
-      const totalSupplyAfter = await mintPassContract.totalSupply();
+      const totalSupplyAfter = await passContract.totalSupply();
       expect(totalSupplyAfter).to.equal(totalSupplyBefore.add(amount));
     });
   });

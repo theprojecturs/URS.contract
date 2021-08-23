@@ -4,14 +4,14 @@ pragma solidity ^0.8.0;
 import "@openzeppelin/contracts/utils/math/SafeMath.sol";
 import "./URSFactory.sol";
 
-interface MintPass {
+interface Pass {
     function balanceOf(address) external view returns (uint256);
 }
 
 contract URSStore {
     using SafeMath for uint256;
 
-    MintPass public mintPass;
+    Pass public pass;
     URSFactory public ursFactory;
 
     /**
@@ -81,7 +81,7 @@ contract URSStore {
         uint256 validTicketAmount;
     }
 
-    event SetMintPass(address mintPass);
+    event SetPass(address pass);
     event SetURSFactory(address ursFactory);
     event SetOpeningHours(uint256 openingHours);
     event MintWithPass(address account, uint256 amount, uint256 changes);
@@ -126,9 +126,9 @@ contract URSStore {
         _;
     }
 
-    function setMintPass(MintPass _mintPass) external onlyOwner {
-        mintPass = _mintPass;
-        emit SetMintPass(address(_mintPass));
+    function setPass(Pass _pass) external onlyOwner {
+        pass = _pass;
+        emit SetPass(address(_pass));
     }
 
     function setURSFactory(URSFactory _ursFactory) external onlyOwner {
@@ -158,7 +158,7 @@ contract URSStore {
         require(_amount > 0, "Need to mint more than 0");
 
         uint256 mintedURS = mintedURSOf[msg.sender];
-        uint256 passAmount = mintPass.balanceOf(msg.sender);
+        uint256 passAmount = pass.balanceOf(msg.sender);
         require(
             passAmount.mul(maxURSPerPass).sub(mintedURS) >= _amount,
             "Not enough Pass"

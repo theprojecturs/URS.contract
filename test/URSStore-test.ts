@@ -5,8 +5,8 @@ import {
   URSFactory__factory,
   TestURSStore as URSStore,
   TestURSStore__factory as URSStore__factory,
-  TestMintPass,
-  TestMintPass__factory,
+  TestPass,
+  TestPass__factory,
 } from '../types';
 import { SignerWithAddress } from '@nomiclabs/hardhat-ethers/signers';
 import { solidity } from 'ethereum-waffle';
@@ -32,7 +32,7 @@ const configs = {
 
 describe('URSStore', () => {
   let [deployer, account1, account2]: SignerWithAddress[] = [];
-  let mintPassContract: TestMintPass;
+  let passContract: TestPass;
   let ursFactoryContract: URSFactory;
   let ursStoreContract: URSStore;
 
@@ -47,8 +47,8 @@ describe('URSStore', () => {
   beforeEach(async () => {
     [deployer, account1, account2] = await ethers.getSigners();
 
-    const MintPass = new TestMintPass__factory(deployer);
-    mintPassContract = await MintPass.deploy(
+    const Pass = new TestPass__factory(deployer);
+    passContract = await Pass.deploy(
       configs.name,
       configs.symbol,
       configs.baseURI
@@ -66,12 +66,12 @@ describe('URSStore', () => {
 
     await ursFactoryContract.setURSStore(ursStoreContract.address);
     await ursStoreContract.setURSFactory(ursFactoryContract.address);
-    await ursStoreContract.setMintPass(mintPassContract.address);
+    await ursStoreContract.setPass(passContract.address);
   });
 
   describe('constructor', async () => {
     it('Should be initialized successfully', async () => {
-      expect(await ursStoreContract.mintPass()).to.eq(mintPassContract.address);
+      expect(await ursStoreContract.pass()).to.eq(passContract.address);
       expect(await ursStoreContract.ursFactory()).to.eq(
         ursFactoryContract.address
       );
@@ -107,31 +107,31 @@ describe('URSStore', () => {
     });
   });
 
-  describe('setMintPass', async () => {
+  describe('setPass', async () => {
     it('fails if non-owner try to call', async () => {
       const nonOwner = account1;
       expect(await ursStoreContract.owner()).not.to.eq(nonOwner.address);
 
       await expect(
-        ursStoreContract.connect(nonOwner).setMintPass(mintPassContract.address)
+        ursStoreContract.connect(nonOwner).setPass(passContract.address)
       ).to.be.revertedWith('caller is not the owner');
     });
 
-    it('changes mintPass address', async () => {
-      const newMintPassAddress = account1.address;
-      expect(await ursStoreContract.mintPass()).not.to.eq(newMintPassAddress);
+    it('changes pass address', async () => {
+      const newPassAddress = account1.address;
+      expect(await ursStoreContract.pass()).not.to.eq(newPassAddress);
 
-      await ursStoreContract.connect(deployer).setMintPass(newMintPassAddress);
+      await ursStoreContract.connect(deployer).setPass(newPassAddress);
 
-      expect(await ursStoreContract.mintPass()).to.eq(newMintPassAddress);
+      expect(await ursStoreContract.pass()).to.eq(newPassAddress);
     });
 
-    it("emits 'SetMintPass' event", async () => {
+    it("emits 'SetPass' event", async () => {
       await expect(
-        ursStoreContract.connect(deployer).setMintPass(mintPassContract.address)
+        ursStoreContract.connect(deployer).setPass(passContract.address)
       )
-        .to.emit(ursStoreContract, 'SetMintPass')
-        .withArgs(mintPassContract.address);
+        .to.emit(ursStoreContract, 'SetPass')
+        .withArgs(passContract.address);
     });
   });
 
@@ -305,9 +305,9 @@ describe('URSStore', () => {
       ).to.be.revertedWith('mint amount exceeds maximum');
     });
 
-    it('fails if user does not hold any mintPass', async () => {
+    it('fails if user does not hold any pass', async () => {
       const receiver = account1;
-      expect(await mintPassContract.balanceOf(receiver.address)).to.eq(0);
+      expect(await passContract.balanceOf(receiver.address)).to.eq(0);
 
       await expect(ursStoreContract.mintWithPass(1)).to.be.revertedWith(
         'Not enough Pass'
@@ -320,11 +320,11 @@ describe('URSStore', () => {
       );
     });
 
-    it('fails if mint amount exceeds allowed quantity (mintPass qty)', async () => {
+    it('fails if mint amount exceeds allowed quantity (pass qty)', async () => {
       const receiver = account1;
 
-      await mintPassContract.mint(receiver.address, 0);
-      expect(await mintPassContract.balanceOf(receiver.address)).to.eq(1);
+      await passContract.mint(receiver.address, 0);
+      expect(await passContract.balanceOf(receiver.address)).to.eq(1);
 
       await expect(
         ursStoreContract.connect(receiver).mintWithPass(MAX_URS_PER_PASS + 1)
@@ -334,8 +334,8 @@ describe('URSStore', () => {
     it('fails if zero ether is sent', async () => {
       const receiver = account1;
 
-      await mintPassContract.mint(receiver.address, 0);
-      expect(await mintPassContract.balanceOf(receiver.address)).to.eq(1);
+      await passContract.mint(receiver.address, 0);
+      expect(await passContract.balanceOf(receiver.address)).to.eq(1);
 
       await expect(
         ursStoreContract.connect(receiver).mintWithPass(1)
@@ -347,8 +347,8 @@ describe('URSStore', () => {
       const amount = 3;
       const totalPrice = TICKET_PRICE_IN_WEI.mul(amount);
 
-      await mintPassContract.mint(receiver.address, 0);
-      expect(await mintPassContract.balanceOf(receiver.address)).to.eq(1);
+      await passContract.mint(receiver.address, 0);
+      expect(await passContract.balanceOf(receiver.address)).to.eq(1);
 
       await expect(
         ursStoreContract
@@ -362,8 +362,8 @@ describe('URSStore', () => {
       const amount = 3;
       const totalPrice = TICKET_PRICE_IN_WEI.mul(amount);
 
-      await mintPassContract.mint(receiver.address, 0);
-      expect(await mintPassContract.balanceOf(receiver.address)).to.eq(1);
+      await passContract.mint(receiver.address, 0);
+      expect(await passContract.balanceOf(receiver.address)).to.eq(1);
 
       const mintedAmount = await ursStoreContract.mintedURSOf(receiver.address);
       const newlyMintedURSWithPass =
@@ -386,9 +386,9 @@ describe('URSStore', () => {
       const amount = MAX_URS_PER_PASS;
       const totalPrice = TICKET_PRICE_IN_WEI.mul(amount);
 
-      await mintPassContract.mint(receiver.address, 0);
-      await mintPassContract.mint(receiver.address, 1);
-      expect(await mintPassContract.balanceOf(receiver.address)).to.eq(2);
+      await passContract.mint(receiver.address, 0);
+      await passContract.mint(receiver.address, 1);
+      expect(await passContract.balanceOf(receiver.address)).to.eq(2);
 
       const mintedAmount = await ursStoreContract.mintedURSOf(receiver.address);
       const newlyMintedURSWithPass =
@@ -422,7 +422,7 @@ describe('URSStore', () => {
       const amount = MAX_URS_PER_PASS;
       const totalPrice = TICKET_PRICE_IN_WEI.mul(amount);
 
-      await mintPassContract.mint(receiver.address, 0);
+      await passContract.mint(receiver.address, 0);
 
       const ethBalanceOfContract = await ethers.provider.getBalance(
         ursStoreContract.address
@@ -443,7 +443,7 @@ describe('URSStore', () => {
       const extraAmountInWei = 100;
       const totalPrice = TICKET_PRICE_IN_WEI.mul(amount);
 
-      await mintPassContract.mint(receiver.address, 0);
+      await passContract.mint(receiver.address, 0);
 
       const ethBalanceOfContract = await ethers.provider.getBalance(
         ursStoreContract.address
@@ -470,7 +470,7 @@ describe('URSStore', () => {
       const amount = 1;
       const totalPrice = TICKET_PRICE_IN_WEI;
 
-      await mintPassContract.mint(receiver.address, 0);
+      await passContract.mint(receiver.address, 0);
 
       await expect(
         ursStoreContract
@@ -1022,17 +1022,17 @@ describe('URSStore', () => {
       await Promise.all(preMintTasks);
 
       const passHolder = account1;
-      let requiredMintPassAmount = Math.ceil(
+      let requiredPassAmount = Math.ceil(
         newlyMintedURSWithPass / MAX_URS_PER_PASS
       );
       let requiredMintWithPassTxAmount = Math.ceil(
         newlyMintedURSWithPass / MAX_MINT_PER_TX
       );
 
-      const mintMintPassTasks = new Array(requiredMintPassAmount)
+      const passTasks = new Array(requiredPassAmount)
         .fill(null)
-        .map((_, i) => mintPassContract.mint(passHolder.address, i));
-      await Promise.all(mintMintPassTasks);
+        .map((_, i) => passContract.mint(passHolder.address, i));
+      await Promise.all(passTasks);
 
       const mintWithPassTasks = new Array(requiredMintWithPassTxAmount)
         .fill(null)

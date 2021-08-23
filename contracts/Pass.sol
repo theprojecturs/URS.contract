@@ -4,7 +4,7 @@ pragma solidity ^0.8.0;
 import "@openzeppelin/contracts/token/ERC721/ERC721.sol";
 import "@openzeppelin/contracts/utils/cryptography/draft-EIP712.sol";
 
-contract MintPass is ERC721, EIP712 {
+contract Pass is ERC721, EIP712 {
     // EIP712 Feature
     bytes32 public constant TYPEHASH =
         keccak256("PassReq(address receiver,uint256 amount)");
