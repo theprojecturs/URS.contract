@@ -33,7 +33,7 @@ contract URSStore {
     // URS which is minted by the owner
     uint256 public preMintedURS = 0;
     // MAX URS which owner can mint
-    uint256 public constant maxPreMintURS = 20;
+    uint256 public constant maxPreMintURS = 50;
 
     /**
         Mint Pass

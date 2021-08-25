@@ -18,7 +18,7 @@ contract Pass is ERC721, EIP712 {
     string public baseURI;
 
     uint256 public totalSupply = 0;
-    uint256 public constant MAX_SUPPLY = 500;
+    uint256 public constant MAX_SUPPLY = 1000;
 
     uint256 public claimUntil;
 

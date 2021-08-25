@@ -18,7 +18,7 @@ const { expect } = chai;
 
 const EMPTY_ADDRESS = '0x0000000000000000000000000000000000000000';
 const MAX_SUPPLY = 10000;
-const MAX_PRE_MINT_SUPPLY = 20;
+const MAX_PRE_MINT_SUPPLY = 50;
 const MAX_URS_PER_PASS = 5;
 const MAX_MINT_PER_TX = 30;
 const TICKET_PRICE_IN_WEI = ethers.utils.parseEther('0.08');

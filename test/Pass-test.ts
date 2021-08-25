@@ -8,7 +8,7 @@ import { signTypedData, DomainType, splitSignature } from './utils/EIP712';
 chai.use(solidity);
 const { expect } = chai;
 
-const MAX_SUPPLY = 500;
+const MAX_SUPPLY = 1000;
 const configs = {
   name: 'test',
   symbol: 'tst',
@@ -41,7 +41,7 @@ describe('Pass', () => {
       expect(await passContract.paused()).to.eq(true);
       expect(await passContract.baseURI()).to.eq(configs.baseURI);
       expect(await passContract.totalSupply()).to.eq(0);
-      expect(await passContract.MAX_SUPPLY()).to.eq(500);
+      expect(await passContract.MAX_SUPPLY()).to.eq(MAX_SUPPLY);
       expect(await passContract.name()).to.eq(configs.name);
       expect(await passContract.symbol()).to.eq(configs.symbol);
       expect(await passContract.claimUntil()).to.eq(0);
