@@ -984,7 +984,7 @@ describe('URSStore', () => {
 
       const receiver = account1;
 
-      const emptyAddressBalanceBefore = await ethers.provider.getBalance(
+      const receiverBalanceBefore = await ethers.provider.getBalance(
         receiver.address
       );
 
@@ -992,11 +992,11 @@ describe('URSStore', () => {
         ursStoreContract.connect(deployer).withdraw(receiver.address)
       ).not.to.be.reverted;
 
-      const emptyAddressBalanceAfter = await ethers.provider.getBalance(
+      const receiverBalanceAfter = await ethers.provider.getBalance(
         receiver.address
       );
-      expect(emptyAddressBalanceAfter).to.eq(
-        emptyAddressBalanceBefore.add(
+      expect(receiverBalanceAfter).to.eq(
+        receiverBalanceBefore.add(
           TICKET_PRICE_IN_WEI.mul(MAX_SUPPLY - MAX_PRE_MINT_SUPPLY)
         )
       );
