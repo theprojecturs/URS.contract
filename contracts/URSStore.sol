@@ -270,7 +270,7 @@ contract URSStore {
                     _slotSize;
             }
 
-            while (lastWinIndex > _lastTargetIndex) {
+            if (lastWinIndex > _lastTargetIndex) {
                 lastWinIndex -= _slotSize;
             }
 
