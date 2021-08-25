@@ -239,6 +239,9 @@ contract URSStore {
             v in (slot #n+2) is ths lastWinIndex
         */
         uint256 lastIndex = index + amount - 1; // incl.
+        if (lastIndex > _lastTargetIndex) {
+            lastIndex = _lastTargetIndex;
+        }
 
         uint256 firstIndexOffset = index % _slotSize;
         uint256 lastIndexOffset = lastIndex % _slotSize;
@@ -269,10 +272,6 @@ contract URSStore {
                     _offsetInSlot -
                     lastIndexOffset -
                     _slotSize;
-            }
-
-            if (lastWinIndex > _lastTargetIndex) {
-                lastWinIndex -= _slotSize;
             }
 
             if (firstWinIndex > lastWinIndex) {

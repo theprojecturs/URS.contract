@@ -134,11 +134,16 @@ lastTargetIndex = slotSize * remainingURS - 1
 
 5. last ticket index (my ticket)
 
+   - If lastIndex exceeds lastTargetIndex, assign lastTargetIndex to lastIndex
+
 ```
 lastIndex = myIndex + amount - 1
+if (lastIndex > lastTargetIndex) {
+  lastIndex = lastTargetIndex
+}
 ```
 
-6. first index offset
+1. first index offset
 
 ```
 firstIndexOffset = myIndex % slotSize
@@ -195,20 +200,10 @@ if (lastIndexOffset >= offsetInSlot) {
 }
 ```
 
-11. check last win index range
+11. calculate valid ticket amount
 
-- make last win index is in the valid slot
-
-```
-while (lastWinIndex > lastTargetIndex) {
-  lastWinIndex = lastWinIndex - slotSize
-}
-```
-
-12. calculate valid ticket amount
-
-    1. if first win index is greater than last win index
-    2. if first win index is less than or equal to the last win index
+1.  if first win index is greater than last win index
+1.  if first win index is less than or equal to the last win index
 
 ```
 if (firstWinIndex > lastWinIndex) {
