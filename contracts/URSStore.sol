@@ -140,6 +140,7 @@ contract URSStore {
 
     // Do not update newlyMintedURS to prevent withdrawal
     function preMintURS(address to) external onlyOwner {
+        require(to != address(0), "receiver can not be empty address");
         require(preMintedURS < maxPreMintURS, "Exceeds max pre-mint URS");
         require(
             block.timestamp <
@@ -337,6 +338,7 @@ contract URSStore {
 
     // withdraw eth for sold URS
     function withdraw(address _to) external onlyOwner {
+        require(_to != address(0), "receiver can not be empty address");
         require(!claimed, "Already claimed");
         require(
             maxURS - maxPreMintURS <= totalTickets + newlyMintedURSWithPass,

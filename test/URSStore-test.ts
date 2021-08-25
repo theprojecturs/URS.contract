@@ -11,6 +11,7 @@ import {
 import { SignerWithAddress } from '@nomiclabs/hardhat-ethers/signers';
 import { solidity } from 'ethereum-waffle';
 import { testSets, testSetForPrint } from './utils/CalcHelper';
+import { intToHex } from 'ethjs-util';
 
 chai.use(solidity);
 const { expect } = chai;
@@ -272,6 +273,13 @@ describe('URSStore', () => {
       );
 
       await expect(tasks).to.be.revertedWith('Exceeds max pre-mint URS');
+    });
+
+    it('fails for zero address receiver', async () => {
+      const receiver = EMPTY_ADDRESS;
+      expect(
+        ursStoreContract.connect(deployer).preMintURS(receiver)
+      ).to.be.revertedWith('receiver can not be empty address');
     });
   });
 
@@ -959,8 +967,14 @@ describe('URSStore', () => {
 
     it('fails if not enough ticket is taken', async () => {
       await expect(
-        ursStoreContract.connect(deployer).withdraw(EMPTY_ADDRESS)
+        ursStoreContract.connect(deployer).withdraw(deployer.address)
       ).to.be.revertedWith('Not enough ethers are collected');
+    });
+
+    it('fails for zero address receiver', async () => {
+      await expect(
+        ursStoreContract.connect(deployer).withdraw(EMPTY_ADDRESS)
+      ).to.be.revertedWith('receiver can not be empty address');
     });
 
     it('sends appropriate eth value', async () => {
@@ -968,15 +982,18 @@ describe('URSStore', () => {
         value: TICKET_PRICE_IN_WEI.mul(MAX_SUPPLY * 2),
       });
 
+      const receiver = account1;
+
       const emptyAddressBalanceBefore = await ethers.provider.getBalance(
-        EMPTY_ADDRESS
+        receiver.address
       );
 
-      await expect(ursStoreContract.connect(deployer).withdraw(EMPTY_ADDRESS))
-        .not.to.be.reverted;
+      await expect(
+        ursStoreContract.connect(deployer).withdraw(receiver.address)
+      ).not.to.be.reverted;
 
       const emptyAddressBalanceAfter = await ethers.provider.getBalance(
-        EMPTY_ADDRESS
+        receiver.address
       );
       expect(emptyAddressBalanceAfter).to.eq(
         emptyAddressBalanceBefore.add(
