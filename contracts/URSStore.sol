@@ -285,7 +285,7 @@ contract URSStore {
         }
     }
 
-    function checkMyResult() external {
+    function calculateMyResult() external {
         require(raffleNumber > 0, "raffle number is not set yet");
 
         ticket storage myTicket = ticketsOf[msg.sender];

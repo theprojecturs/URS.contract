@@ -697,7 +697,7 @@ describe('URSStore', () => {
     });
   });
 
-  describe('checkMyResult', async () => {
+  describe('calculateMyResult', async () => {
     let ticketHolder: SignerWithAddress;
 
     beforeEach(async () => {
@@ -716,7 +716,7 @@ describe('URSStore', () => {
     });
 
     it('fails if raffleNumber is not set', async () => {
-      await expect(ursStoreContract.checkMyResult()).to.be.revertedWith(
+      await expect(ursStoreContract.calculateMyResult()).to.be.revertedWith(
         'raffle number is not set yet'
       );
     });
@@ -729,7 +729,7 @@ describe('URSStore', () => {
 
       await ursStoreContract.runRaffle(5);
       await expect(
-        ursStoreContract.connect(taker).checkMyResult()
+        ursStoreContract.connect(taker).calculateMyResult()
       ).to.be.revertedWith('No available ticket');
     });
 
@@ -738,11 +738,11 @@ describe('URSStore', () => {
       expect(myTickets.amount).not.to.eq(0);
 
       await ursStoreContract.runRaffle(5);
-      await expect(ursStoreContract.connect(ticketHolder).checkMyResult()).not
-        .to.be.reverted;
+      await expect(ursStoreContract.connect(ticketHolder).calculateMyResult())
+        .not.to.be.reverted;
 
       await expect(
-        ursStoreContract.connect(ticketHolder).checkMyResult()
+        ursStoreContract.connect(ticketHolder).calculateMyResult()
       ).to.be.revertedWith('Already checked');
     });
 
@@ -768,7 +768,7 @@ describe('URSStore', () => {
 
       await ursStoreContract.runRaffle(5);
       await expect(
-        ursStoreContract.connect(taker).checkMyResult({ gasPrice: 0 })
+        ursStoreContract.connect(taker).calculateMyResult({ gasPrice: 0 })
       ).not.to.be.reverted;
 
       const ethBalanceOfContractAfter = await ethers.provider.getBalance(
@@ -794,7 +794,7 @@ describe('URSStore', () => {
       });
 
       await ursStoreContract.runRaffle(5);
-      await expect(ursStoreContract.connect(taker).checkMyResult())
+      await expect(ursStoreContract.connect(taker).calculateMyResult())
         .to.emit(ursStoreContract, 'SetResult')
         .withArgs(taker.address, 0, totalPrice);
     });
@@ -841,14 +841,14 @@ describe('URSStore', () => {
       await ursStoreContract.connect(deployer).runRaffle(1);
     });
 
-    it("fails if user did not run 'checkMyResult' before", async () => {
+    it("fails if user did not run 'calculateMyResult' before", async () => {
       await expect(ursStoreContract.mintURS()).to.be.revertedWith(
         'result is not calculated yet'
       );
     });
 
     it('fails if user does not hold any valid ticket', async () => {
-      await ursStoreContract.connect(invalidTicketHolder).checkMyResult();
+      await ursStoreContract.connect(invalidTicketHolder).calculateMyResult();
 
       await expect(
         ursStoreContract.connect(invalidTicketHolder).mintURS()
@@ -856,7 +856,7 @@ describe('URSStore', () => {
     });
 
     it('mints maxMintPerTx if validTicketAmount exceeds maxMintPerTx', async () => {
-      await ursStoreContract.connect(allTicketsHolder).checkMyResult();
+      await ursStoreContract.connect(allTicketsHolder).calculateMyResult();
 
       const ursBalanceBefore = await ursFactoryContract.balanceOf(
         allTicketsHolder.address
@@ -884,7 +884,7 @@ describe('URSStore', () => {
     });
 
     it('mints all if validTicketAmount does not exceed maxMintPerTx', async () => {
-      await ursStoreContract.connect(firstTwoTicketsHolder).checkMyResult();
+      await ursStoreContract.connect(firstTwoTicketsHolder).calculateMyResult();
       const amount = 2;
 
       const ursBalanceBefore = await ursFactoryContract.balanceOf(
@@ -911,14 +911,14 @@ describe('URSStore', () => {
     });
 
     it("emits 'MintURS' event", async () => {
-      await ursStoreContract.connect(firstTwoTicketsHolder).checkMyResult();
+      await ursStoreContract.connect(firstTwoTicketsHolder).calculateMyResult();
 
       const amount = 2;
       await expect(ursStoreContract.connect(firstTwoTicketsHolder).mintURS())
         .to.emit(ursStoreContract, 'MintURS')
         .withArgs(firstTwoTicketsHolder.address, amount);
 
-      await ursStoreContract.connect(allTicketsHolder).checkMyResult();
+      await ursStoreContract.connect(allTicketsHolder).calculateMyResult();
 
       await expect(ursStoreContract.connect(allTicketsHolder).mintURS())
         .to.emit(ursStoreContract, 'MintURS')
