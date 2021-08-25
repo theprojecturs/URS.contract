@@ -1,7 +1,6 @@
 //SPDX-License-Identifier: Unlicense
 pragma solidity ^0.8.0;
 
-import "@openzeppelin/contracts/utils/math/SafeMath.sol";
 import "./URSFactory.sol";
 
 interface Pass {
@@ -9,8 +8,6 @@ interface Pass {
 }
 
 contract URSStore {
-    using SafeMath for uint256;
-
     Pass public pass;
     URSFactory public ursFactory;
 
@@ -160,11 +157,11 @@ contract URSStore {
         uint256 mintedURS = mintedURSOf[msg.sender];
         uint256 passAmount = pass.balanceOf(msg.sender);
         require(
-            passAmount.mul(maxURSPerPass).sub(mintedURS) >= _amount,
+            passAmount * maxURSPerPass - mintedURS >= _amount,
             "Not enough Pass"
         );
 
-        uint256 totalPrice = ticketPrice.mul(_amount);
+        uint256 totalPrice = ticketPrice * _amount;
         require(totalPrice <= msg.value, "Not enough money");
 
         for (uint256 i = 0; i < _amount; i += 1) {
@@ -175,7 +172,7 @@ contract URSStore {
         newlyMintedURSWithPass += _amount;
 
         // Refund changes
-        uint256 changes = msg.value.sub(totalPrice);
+        uint256 changes = msg.value - totalPrice;
         emit MintWithPass(msg.sender, _amount, changes);
 
         payable(msg.sender).transfer(changes);
@@ -187,16 +184,16 @@ contract URSStore {
         ticket storage myTicket = ticketsOf[msg.sender];
         require(myTicket.amount == 0, "Already registered");
 
-        uint256 totalPrice = ticketPrice.mul(_amount);
+        uint256 totalPrice = ticketPrice * _amount;
         require(totalPrice <= msg.value, "Not enough money");
 
         myTicket.index = totalTickets;
         myTicket.amount = _amount;
 
-        totalTickets = totalTickets.add(_amount);
+        totalTickets = totalTickets + _amount;
 
         // Refund changes
-        uint256 changes = msg.value.sub(totalPrice);
+        uint256 changes = msg.value - totalPrice;
         emit TakingTickets(msg.sender, _amount, changes);
 
         payable(msg.sender).transfer(changes);
@@ -210,8 +207,8 @@ contract URSStore {
 
         // Hopefully consider that totalTickets number is more than remainingURS
         // Actually this number can be controlled from team by taking tickets
-        slotSize = totalTickets.div(remainingURS);
-        offsetInSlot = _raffleNumber.mod(slotSize);
+        slotSize = totalTickets / remainingURS;
+        offsetInSlot = _raffleNumber % slotSize;
         lastTargetIndex = slotSize * remainingURS - 1;
 
         emit RunRaffle(_raffleNumber);
@@ -242,16 +239,18 @@ contract URSStore {
         */
         uint256 lastIndex = index + amount - 1; // incl.
 
-        uint256 firstIndexOffset = (index).mod(_slotSize);
-        uint256 lastIndexOffset = (lastIndex).mod(_slotSize);
+        uint256 firstIndexOffset = index % _slotSize;
+        uint256 lastIndexOffset = lastIndex % _slotSize;
 
         uint256 firstWinIndex;
         if (firstIndexOffset <= _offsetInSlot) {
-            firstWinIndex = index.add(_offsetInSlot).sub(firstIndexOffset);
+            firstWinIndex = index + _offsetInSlot - firstIndexOffset;
         } else {
-            firstWinIndex = index.add(_slotSize).add(_offsetInSlot).sub(
-                firstIndexOffset
-            );
+            firstWinIndex =
+                index +
+                _slotSize +
+                _offsetInSlot -
+                firstIndexOffset;
         }
 
         // Nothing is selected
@@ -260,16 +259,15 @@ contract URSStore {
         } else {
             uint256 lastWinIndex;
             if (lastIndexOffset >= _offsetInSlot) {
-                lastWinIndex = lastIndex.add(_offsetInSlot).sub(
-                    lastIndexOffset
-                );
+                lastWinIndex = lastIndex + _offsetInSlot - lastIndexOffset;
             } else if (lastIndex < _slotSize) {
                 lastWinIndex = 0;
             } else {
-                lastWinIndex = lastIndex
-                    .add(_offsetInSlot)
-                    .sub(lastIndexOffset)
-                    .sub(_slotSize);
+                lastWinIndex =
+                    lastIndex +
+                    _offsetInSlot -
+                    lastIndexOffset -
+                    _slotSize;
             }
 
             while (lastWinIndex > _lastTargetIndex) {
@@ -280,7 +278,8 @@ contract URSStore {
                 validTicketAmount = 0;
             } else {
                 validTicketAmount =
-                    (lastWinIndex.sub(firstWinIndex)).div(_slotSize) +
+                    (lastWinIndex - firstWinIndex) /
+                    _slotSize +
                     1;
             }
         }
@@ -306,7 +305,7 @@ contract URSStore {
         myResult.validTicketAmount = validTicketAmount;
         myResult.executed = true;
 
-        uint256 remainingTickets = myTicket.amount.sub(validTicketAmount);
+        uint256 remainingTickets = myTicket.amount - validTicketAmount;
         uint256 changes = remainingTickets * ticketPrice;
 
         emit SetResult(msg.sender, validTicketAmount, changes);
