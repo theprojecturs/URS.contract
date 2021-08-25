@@ -26,6 +26,7 @@ contract Pass is ERC721, EIP712 {
     event Unpaused();
     event ClaimPass(address claimer, uint256 amount);
     event SetClaimUntil(uint256 claimUntil);
+    event RetrieveUnclaimedPass(address to, uint256 passAmount);
 
     constructor(
         string memory __name,
@@ -112,5 +113,7 @@ contract Pass is ERC721, EIP712 {
             _mint(_to, i);
         }
         totalSupply += _passAmount;
+
+        emit RetrieveUnclaimedPass(_to, _passAmount);
     }
 }

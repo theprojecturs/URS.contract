@@ -335,5 +335,18 @@ describe('Pass', () => {
       const totalSupplyAfter = await passContract.totalSupply();
       expect(totalSupplyAfter).to.equal(totalSupplyBefore.add(amount));
     });
+
+    it("emits 'RetrieveUnclaimedPass' event", async () => {
+      const receiver = nonDeployer;
+      const amount = 5;
+
+      await expect(
+        passContract
+          .connect(deployer)
+          .retrieveUnclaimedPass(receiver.address, amount)
+      )
+        .to.emit(passContract, 'RetrieveUnclaimedPass')
+        .withArgs(receiver.address, amount);
+    });
   });
 });
