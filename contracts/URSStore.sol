@@ -90,7 +90,7 @@ contract URSStore {
         uint256 changes
     );
     event MintURS(address account, uint256 mintRequestAmount);
-    event Withdraw();
+    event Withdraw(address to);
 
     constructor() {
         owner = msg.sender;
@@ -346,7 +346,7 @@ contract URSStore {
         uint256 withdrawalAmount = ticketPrice * (maxURS - maxPreMintURS);
 
         // Send eth to designated receiver
-        emit Withdraw();
+        emit Withdraw(_to);
 
         claimed = true;
         payable(_to).transfer(withdrawalAmount);

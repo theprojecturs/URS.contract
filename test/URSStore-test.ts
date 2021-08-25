@@ -990,10 +990,9 @@ describe('URSStore', () => {
         value: TICKET_PRICE_IN_WEI.mul(MAX_SUPPLY),
       });
 
-      await expect(ursStoreContract.withdraw(deployer.address)).to.emit(
-        ursStoreContract,
-        'Withdraw'
-      );
+      await expect(ursStoreContract.withdraw(deployer.address))
+        .to.emit(ursStoreContract, 'Withdraw')
+        .withArgs(deployer.address);
     });
   });
 
