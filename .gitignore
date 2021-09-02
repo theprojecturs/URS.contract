@@ -13,3 +13,6 @@ coverage.json
 
 #credentials
 .env
+
+#log
+yarn-error.log
