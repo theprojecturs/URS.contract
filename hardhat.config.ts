@@ -6,6 +6,9 @@ import 'hardhat-contract-sizer';
 import 'hardhat-tracer';
 import 'solidity-coverage';
 import { HardhatUserConfig } from 'hardhat/config';
+import dotenv from 'dotenv';
+
+dotenv.config();
 
 // You need to export an object to set up your config
 // Go to https://hardhat.org/config/ to learn more
@@ -32,6 +35,10 @@ const config: HardhatUserConfig = {
       accounts: {
         accountsBalance: '100000000000000000000000', // 100,000eth
       },
+    },
+    rinkeby: {
+      url: `https://rinkeby.infura.io/v3/${process.env.INFURA_KEY}`,
+      accounts: [`0x${process.env.PRIV_KEY}`],
     },
   },
   typechain: {

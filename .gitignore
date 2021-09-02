@@ -10,3 +10,6 @@ types
 #test
 coverage
 coverage.json
+
+#credentials
+.env
