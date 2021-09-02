@@ -8,6 +8,7 @@
     "coverage": "npx hardhat coverage",
     "deploy:pass": "npx hardhat run scripts/deploy-pass.ts",
     "deploy:factory": "npx hardhat run scripts/deploy-factory.ts",
+    "deploy:store": "npx hardhat run scripts/deploy-store.ts",
     "sign:pass": "npx hardhat run scripts/sign-message.ts",
     "test": "npx hardhat test",
     "test:full": "FULL_TEST=true npx hardhat test --logs"
