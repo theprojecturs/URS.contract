@@ -176,7 +176,9 @@ contract URSStore {
         uint256 changes = msg.value - totalPrice;
         emit MintWithPass(msg.sender, _amount, changes);
 
-        payable(msg.sender).transfer(changes);
+        if (changes > 0) {
+            payable(msg.sender).transfer(changes);
+        }
     }
 
     function takingTickets(uint256 _amount) external payable whenOpened {
@@ -197,7 +199,9 @@ contract URSStore {
         uint256 changes = msg.value - totalPrice;
         emit TakingTickets(msg.sender, _amount, changes);
 
-        payable(msg.sender).transfer(changes);
+        if (changes > 0) {
+            payable(msg.sender).transfer(changes);
+        }
     }
 
     function runRaffle(uint256 _raffleNumber) external onlyOwner {
@@ -309,7 +313,9 @@ contract URSStore {
         uint256 changes = remainingTickets * ticketPrice;
 
         emit SetResult(msg.sender, validTicketAmount, changes);
-        payable(msg.sender).transfer(changes);
+        if (changes > 0) {
+            payable(msg.sender).transfer(changes);
+        }
     }
 
     function mintURS() external {
@@ -336,7 +342,7 @@ contract URSStore {
     }
 
     // withdraw eth for sold URS
-    function withdraw(address _to) external onlyOwner {
+    function withdraw(address payable _to) external onlyOwner {
         require(_to != address(0), "receiver can not be empty address");
         require(!claimed, "Already claimed");
         require(
@@ -350,6 +356,6 @@ contract URSStore {
         emit Withdraw(_to);
 
         claimed = true;
-        payable(_to).transfer(withdrawalAmount);
+        _to.transfer(withdrawalAmount);
     }
 }
