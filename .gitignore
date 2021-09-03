@@ -17,3 +17,6 @@ data
 
 #log
 yarn-error.log
+
+#flatten
+flatten

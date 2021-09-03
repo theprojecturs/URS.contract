@@ -9,6 +9,9 @@
     "deploy:pass": "npx hardhat run scripts/deploy-pass.ts",
     "deploy:factory": "npx hardhat run scripts/deploy-factory.ts",
     "deploy:store": "npx hardhat run scripts/deploy-store.ts",
+    "flatten:pass": "npx hardhat flatten contracts/Pass.sol > flatten/Pass.sol",
+    "flatten:factory": "npx hardhat flatten contracts/URSFactory.sol > flatten/URSFactory.sol",
+    "flatten:store": "npx hardhat flatten contracts/URSStore.sol > flatten/URSStore.sol",
     "sign:pass": "npx hardhat run scripts/sign-message.ts",
     "test": "npx hardhat test",
     "test:full": "FULL_TEST=true npx hardhat test --logs"
