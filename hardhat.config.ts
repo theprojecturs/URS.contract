@@ -1,3 +1,4 @@
+import '@nomiclabs/hardhat-etherscan';
 import 'hardhat-gas-reporter';
 import '@typechain/hardhat';
 import '@nomiclabs/hardhat-ethers';
@@ -40,6 +41,9 @@ const config: HardhatUserConfig = {
       url: `https://rinkeby.infura.io/v3/${process.env.INFURA_KEY}`,
       accounts: [`0x${process.env.PRIV_KEY}`],
     },
+  },
+  etherscan: {
+    apiKey: process.env.ETHERSCAN_KEY,
   },
   typechain: {
     outDir: './types',
