@@ -1,7 +1,9 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.0;
 
-import "./URSFactory.sol";
+interface Factory {
+    function mint(address) external;
+}
 
 interface Pass {
     function balanceOf(address) external view returns (uint256);
@@ -9,7 +11,7 @@ interface Pass {
 
 contract URSStore {
     Pass public pass;
-    URSFactory public ursFactory;
+    Factory public ursFactory;
 
     /**
         Store
@@ -128,7 +130,7 @@ contract URSStore {
         emit SetPass(address(_pass));
     }
 
-    function setURSFactory(URSFactory _ursFactory) external onlyOwner {
+    function setURSFactory(Factory _ursFactory) external onlyOwner {
         ursFactory = _ursFactory;
         emit SetURSFactory(address(_ursFactory));
     }
