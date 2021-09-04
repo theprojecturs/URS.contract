@@ -6,6 +6,7 @@
   "scripts": {
     "compile": "npx hardhat compile",
     "coverage": "npx hardhat coverage",
+    "size": "yarn compile && npx hardhat size-contracts",
     "deploy:pass": "npx hardhat run scripts/deploy-pass.ts",
     "deploy:factory": "npx hardhat run scripts/deploy-factory.ts",
     "deploy:store": "npx hardhat run scripts/deploy-store.ts",
