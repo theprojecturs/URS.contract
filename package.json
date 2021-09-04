@@ -1,8 +1,9 @@
 {
   "name": "urs",
   "version": "1.0.0",
-  "description": "",
+  "description": "The Project URS contract",
   "main": "index.js",
+  "private": true,
   "scripts": {
     "compile": "npx hardhat compile",
     "coverage": "npx hardhat coverage",
@@ -20,15 +21,18 @@
   },
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/mempooool/URS.contract.git"
+    "url": "git+https://github.com/theprojecturs/URS.contract.git"
   },
   "keywords": [],
-  "author": "",
-  "license": "ISC",
-  "bugs": {
-    "url": "https://github.com/mempooool/URS.contract/issues"
+  "author": {
+    "name": "mempooool",
+    "email": "mempooool@gmail.com"
   },
-  "homepage": "https://github.com/mempooool/URS.contract#readme",
+  "license": "MIT",
+  "bugs": {
+    "url": "https://github.com/theprojecturs/URS.contract/issues"
+  },
+  "homepage": "https://github.com/theprojecturs/URS.contract#readme",
   "devDependencies": {
     "@nomiclabs/hardhat-ethers": "^2.0.2",
     "@nomiclabs/hardhat-etherscan": "^2.1.6",
