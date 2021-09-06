@@ -41,6 +41,10 @@ const config: HardhatUserConfig = {
       url: `https://rinkeby.infura.io/v3/${process.env.INFURA_KEY}`,
       accounts: [`0x${process.env.PRIV_KEY}`],
     },
+    ropsten: {
+      url: `https://ropsten.infura.io/v3/${process.env.INFURA_KEY}`,
+      accounts: [`0x${process.env.PRIV_KEY}`],
+    },
   },
   etherscan: {
     apiKey: process.env.ETHERSCAN_KEY,
@@ -59,7 +63,7 @@ const config: HardhatUserConfig = {
     disambiguatePaths: false,
   },
   mocha: {
-    timeout: 40000,
+    timeout: 120000,
   },
 };
 
