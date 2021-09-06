@@ -1,6 +1,8 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.0;
 
+import "@openzeppelin/contracts/access/Ownable.sol";
+
 interface Factory {
     function mint(address) external;
 }
@@ -9,14 +11,9 @@ interface Pass {
     function balanceOf(address) external view returns (uint256);
 }
 
-contract URSStore {
+contract URSStore is Ownable {
     Pass public pass;
     Factory public ursFactory;
-
-    /**
-        Store
-     */
-    address public owner;
 
     /**
         Numbers for URS Factory
@@ -94,14 +91,7 @@ contract URSStore {
     event MintURS(address account, uint256 mintRequestAmount);
     event Withdraw(address to);
 
-    constructor() {
-        owner = msg.sender;
-    }
-
-    modifier onlyOwner() {
-        require(owner == msg.sender, "caller is not the owner");
-        _;
-    }
+    constructor() {}
 
     modifier whenOpened() {
         require(

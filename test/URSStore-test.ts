@@ -115,7 +115,7 @@ describe('URSStore', () => {
 
       await expect(
         ursStoreContract.connect(nonOwner).setPass(passContract.address)
-      ).to.be.revertedWith('caller is not the owner');
+      ).to.be.revertedWith('Ownable: caller is not the owner');
     });
 
     it('changes pass address', async () => {
@@ -145,7 +145,7 @@ describe('URSStore', () => {
         ursStoreContract
           .connect(nonOwner)
           .setURSFactory(ursFactoryContract.address)
-      ).to.be.revertedWith('caller is not the owner');
+      ).to.be.revertedWith('Ownable: caller is not the owner');
     });
 
     it('changes ursFactory address', async () => {
@@ -182,7 +182,7 @@ describe('URSStore', () => {
 
       await expect(
         ursStoreContract.connect(nonOwner).setOpeningHours(testOpeningHours)
-      ).to.be.revertedWith('caller is not the owner');
+      ).to.be.revertedWith('Ownable: caller is not the owner');
     });
 
     it('changes openingHours', async () => {
@@ -218,7 +218,7 @@ describe('URSStore', () => {
 
       await expect(
         ursStoreContract.connect(nonOwner).preMintURS(nonOwner.address)
-      ).to.be.revertedWith('caller is not the owner');
+      ).to.be.revertedWith('Ownable: caller is not the owner');
     });
 
     it('fails if ticketing period is over', async () => {
@@ -687,7 +687,7 @@ describe('URSStore', () => {
 
       await expect(
         ursStoreContract.connect(nonOwner).runRaffle(1)
-      ).to.be.revertedWith('caller is not the owner');
+      ).to.be.revertedWith('Ownable: caller is not the owner');
     });
 
     it('fails if raffleNumber already set', async () => {
@@ -949,7 +949,7 @@ describe('URSStore', () => {
 
       await expect(
         ursStoreContract.connect(nonOwner).withdraw(nonOwner.address)
-      ).to.be.revertedWith('caller is not the owner');
+      ).to.be.revertedWith('Ownable: caller is not the owner');
     });
 
     it('fails if claimed before', async () => {

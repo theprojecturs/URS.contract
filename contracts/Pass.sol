@@ -3,8 +3,9 @@ pragma solidity ^0.8.0;
 
 import "@openzeppelin/contracts/token/ERC721/ERC721.sol";
 import "@openzeppelin/contracts/utils/cryptography/draft-EIP712.sol";
+import "@openzeppelin/contracts/access/Ownable.sol";
 
-contract Pass is ERC721, EIP712 {
+contract Pass is ERC721, EIP712, Ownable {
     // EIP712 Feature
     bytes32 public constant TYPEHASH =
         keccak256("PassReq(address receiver,uint256 amount)");
@@ -13,7 +14,6 @@ contract Pass is ERC721, EIP712 {
         uint256 amount;
     }
 
-    address public owner;
     bool public paused = true;
     string public baseURI;
 
@@ -33,13 +33,7 @@ contract Pass is ERC721, EIP712 {
         string memory __symbol,
         string memory __baseURI
     ) ERC721(__name, __symbol) EIP712(__name, "1") {
-        owner = msg.sender;
         baseURI = __baseURI;
-    }
-
-    modifier onlyOwner() {
-        require(owner == msg.sender, "caller is not the owner");
-        _;
     }
 
     function setClaimUntil(uint256 _claimUntil) external onlyOwner {
@@ -94,7 +88,7 @@ contract Pass is ERC721, EIP712 {
         );
 
         address signer = ecrecover(digest, vSig, rSig, sSig);
-        require(signer == owner, "Signature is not from the owner");
+        require(signer == owner(), "Signature is not from the owner");
 
         for (uint256 i = totalSupply; i < _passAmount + totalSupply; i += 1) {
             _mint(msg.sender, i);

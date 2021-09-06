@@ -59,7 +59,7 @@ describe('URSFactory', () => {
         ursFactoryContract
           .connect(nonOwner)
           .setURSStore(ursStoreContract.address)
-      ).to.be.revertedWith('caller is not ther owner');
+      ).to.be.revertedWith('Ownable: caller is not the owner');
     });
 
     it('sets URSStore', async () => {
@@ -91,7 +91,7 @@ describe('URSFactory', () => {
       const nonOwner = account1;
       await expect(
         ursFactoryContract.connect(nonOwner).setBaseURI(newBaseURI)
-      ).to.be.revertedWith('caller is not ther owner');
+      ).to.be.revertedWith('Ownable: caller is not the owner');
     });
 
     it('sets baseURI', async () => {

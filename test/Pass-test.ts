@@ -52,8 +52,8 @@ describe('Pass', () => {
     it('can be set by owner only', async () => {
       await expect(
         passContract.connect(nonDeployer).pause()
-      ).to.be.revertedWith('caller is not the owner');
-
+        
+        ).to.be.revertedWith('Ownable: caller is not the owner');
       await expect(passContract.connect(deployer).pause()).not.to.be.reverted;
     });
 
@@ -83,7 +83,7 @@ describe('Pass', () => {
     it('can be set by owner only', async () => {
       await expect(
         passContract.connect(nonDeployer).unpause()
-      ).to.be.revertedWith('caller is not the owner');
+      ).to.be.revertedWith('Ownable: caller is not the owner');
 
       await expect(passContract.connect(deployer).unpause()).not.to.be.reverted;
     });
@@ -117,7 +117,7 @@ describe('Pass', () => {
     it("fails for non-owner's request", async () => {
       await expect(
         passContract.connect(nonDeployer).setClaimUntil(1)
-      ).to.be.revertedWith('caller is not the owner');
+      ).to.be.revertedWith('Ownable: caller is not the owner');
 
       await expect(passContract.connect(deployer).setClaimUntil(1)).not.to.be
         .reverted;
@@ -301,7 +301,7 @@ describe('Pass', () => {
         passContract
           .connect(nonDeployer)
           .retrieveUnclaimedPass(nonDeployer.address, 1)
-      ).to.be.revertedWith('caller is not the owner');
+      ).to.be.revertedWith('Ownable: caller is not the owner');
 
       await expect(
         passContract

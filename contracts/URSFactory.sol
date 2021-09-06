@@ -2,12 +2,12 @@
 pragma solidity ^0.8.0;
 
 import "@openzeppelin/contracts/token/ERC721/ERC721.sol";
+import "@openzeppelin/contracts/access/Ownable.sol";
 
-contract URSFactory is ERC721 {
+contract URSFactory is ERC721, Ownable {
     string public baseURI;
     uint256 public constant MAX_SUPPLY = 10000;
     uint256 public totalSupply;
-    address public owner;
     address public ursStore;
 
     event SetURSStore(address ursStore);
@@ -18,18 +18,12 @@ contract URSFactory is ERC721 {
         string memory __symbol,
         string memory __baseURI
     ) ERC721(__name, __symbol) {
-        owner = msg.sender;
         baseURI = __baseURI;
-    }
-
-    modifier onlyOwner() {
-        require(owner == msg.sender, "caller is not ther owner");
-        _;
     }
 
     modifier onlyOwnerOrStore() {
         require(
-            ursStore == msg.sender || owner == msg.sender,
+            ursStore == msg.sender || owner() == msg.sender,
             "caller is neither ursStore nor owner"
         );
         _;
