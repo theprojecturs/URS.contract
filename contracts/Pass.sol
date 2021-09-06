@@ -80,8 +80,7 @@ contract Pass is ERC721, EIP712, Ownable {
         require(block.timestamp < claimUntil, "Claim period has been ended");
         require(balanceOf(msg.sender) == 0, "Already received pass");
 
-        totalSupply += _passAmount;
-        require(totalSupply <= MAX_SUPPLY, "Exceeds max supply");
+        require(totalSupply + _passAmount <= MAX_SUPPLY, "Exceeds max supply");
 
         bytes32 digest = _hashTypedDataV4(
             keccak256(abi.encode(TYPEHASH, msg.sender, _passAmount))
@@ -93,6 +92,7 @@ contract Pass is ERC721, EIP712, Ownable {
         for (uint256 i = totalSupply; i < _passAmount + totalSupply; i += 1) {
             _mint(msg.sender, i);
         }
+        totalSupply += _passAmount;
 
         emit ClaimPass(msg.sender, _passAmount);
     }
