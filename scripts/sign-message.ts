@@ -1,4 +1,5 @@
 import fs from 'fs';
+import { ethers } from 'hardhat';
 import { SignerWithAddress } from '@nomiclabs/hardhat-ethers/signers';
 import PassReceiverData from '../data/pass-receiver-data.json';
 
