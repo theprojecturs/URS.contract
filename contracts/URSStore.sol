@@ -45,7 +45,7 @@ contract URSStore is Ownable {
         Scheduling
      */
     uint256 public openingHours;
-    uint256 public constant operationSecondsForVIP = 3600 * 3; // 3 hours
+    uint256 public constant operationSecondsForVIP = 3600 * 9; // 9 hours
     uint256 public constant operationSeconds = 3600 * 24; // 24 hours
 
     /**

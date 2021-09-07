@@ -22,7 +22,7 @@ const MAX_PRE_MINT_SUPPLY = 50;
 const MAX_URS_PER_PASS = 5;
 const MAX_MINT_PER_TX = 30;
 const TICKET_PRICE_IN_WEI = ethers.utils.parseEther('0.08');
-const OPERATION_SECONDS_FOR_VIP = 3600 * 3;
+const OPERATION_SECONDS_FOR_VIP = 3600 * 9;
 const OPERATION_SECONDS = 3600 * 24;
 
 const configs = {
