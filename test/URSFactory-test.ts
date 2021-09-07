@@ -16,8 +16,8 @@ const EMPTY_ADDRESS = '0x0000000000000000000000000000000000000000';
 const MAX_SUPPLY = 10000;
 
 const configs = {
-  name: 'test',
-  symbol: 'tst',
+  name: 'TheProjectURS',
+  symbol: 'URS',
   baseURI: 'test.com/',
 };
 

@@ -10,9 +10,9 @@ const { expect } = chai;
 
 const MAX_SUPPLY = 1000;
 const configs = {
-  name: 'test',
-  symbol: 'tst',
-  baseURI: 'test.com',
+  name: 'URSPass',
+  symbol: 'URPASS',
+  baseURI: 'ipfs://QmShcUvQxaZZtivDyiKS76Rs9nq6NajicetjVWdJTsyjuS',
 };
 
 describe('Pass', () => {
@@ -52,8 +52,7 @@ describe('Pass', () => {
     it('can be set by owner only', async () => {
       await expect(
         passContract.connect(nonDeployer).pause()
-        
-        ).to.be.revertedWith('Ownable: caller is not the owner');
+      ).to.be.revertedWith('Ownable: caller is not the owner');
       await expect(passContract.connect(deployer).pause()).not.to.be.reverted;
     });
 
