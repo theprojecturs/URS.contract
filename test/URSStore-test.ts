@@ -217,7 +217,7 @@ describe('URSStore', () => {
       expect(await ursStoreContract.owner()).not.to.eq(nonOwner.address);
 
       await expect(
-        ursStoreContract.connect(nonOwner).preMintURS(nonOwner.address)
+        ursStoreContract.connect(nonOwner).preMintURS([nonOwner.address])
       ).to.be.revertedWith('Ownable: caller is not the owner');
     });
 
@@ -230,7 +230,7 @@ describe('URSStore', () => {
       let currentTimestamp = currentBlock.timestamp;
       expect(currentTimestamp).to.lt(closingHours);
 
-      await expect(ursStoreContract.preMintURS(deployer.address)).not.to.be
+      await expect(ursStoreContract.preMintURS([deployer.address])).not.to.be
         .reverted;
 
       await ethers.provider.send('evm_increaseTime', [closingHours + 1]);
@@ -242,7 +242,7 @@ describe('URSStore', () => {
       expect(currentTimestamp).to.gt(closingHours);
 
       await expect(
-        ursStoreContract.preMintURS(deployer.address)
+        ursStoreContract.preMintURS([deployer.address])
       ).to.be.revertedWith('Not available after ticketing period');
     });
 
@@ -253,7 +253,7 @@ describe('URSStore', () => {
       );
       const preMintedURSAmount = await ursStoreContract.preMintedURS();
 
-      await ursStoreContract.connect(deployer).preMintURS(receiver.address);
+      await ursStoreContract.connect(deployer).preMintURS([receiver.address]);
       expect(await ursFactoryContract.balanceOf(receiver.address)).to.eq(
         balanceOfReceiver.toNumber() + 1
       );
@@ -268,7 +268,7 @@ describe('URSStore', () => {
         new Array(MAX_PRE_MINT_SUPPLY + 1)
           .fill(null)
           .map(() =>
-            ursStoreContract.connect(deployer).preMintURS(receiver.address)
+            ursStoreContract.connect(deployer).preMintURS([receiver.address])
           )
       );
 
@@ -278,7 +278,7 @@ describe('URSStore', () => {
     it('fails for zero address receiver', async () => {
       const receiver = EMPTY_ADDRESS;
       expect(
-        ursStoreContract.connect(deployer).preMintURS(receiver)
+        ursStoreContract.connect(deployer).preMintURS([receiver])
       ).to.be.revertedWith('receiver can not be empty address');
     });
   });
@@ -1034,7 +1034,7 @@ describe('URSStore', () => {
 
       const preMintTasks = new Array(preMintedURS)
         .fill(null)
-        .map(() => ursStoreContract.preMintURS(deployer.address));
+        .map(() => ursStoreContract.preMintURS([deployer.address]));
       await Promise.all(preMintTasks);
 
       const passHolder = account1;

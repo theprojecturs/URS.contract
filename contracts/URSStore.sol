@@ -131,16 +131,30 @@ contract URSStore is Ownable {
     }
 
     // Do not update newlyMintedURS to prevent withdrawal
-    function preMintURS(address to) external onlyOwner {
-        require(to != address(0), "receiver can not be empty address");
-        require(preMintedURS < maxPreMintURS, "Exceeds max pre-mint URS");
+    function preMintURS(address[] memory recipients) external onlyOwner {
         require(
             block.timestamp <
                 openingHours + operationSecondsForVIP + operationSeconds,
             "Not available after ticketing period"
         );
-        preMintedURS += 1;
-        ursFactory.mint(to);
+        uint256 totalRecipients = recipients.length;
+
+        require(
+            totalRecipients > 0,
+            "Number of recipients must be greater than 0"
+        );
+        require(
+            preMintedURS + totalRecipients <= maxPreMintURS,
+            "Exceeds max pre-mint URS"
+        );
+
+        for (uint256 i = 0; i < totalRecipients; i++) {
+            address to = recipients[i];
+            require(to != address(0), "receiver can not be empty address");
+            ursFactory.mint(to);
+        }
+
+        preMintedURS += totalRecipients;
     }
 
     function mintWithPass(uint256 _amount) external payable whenVIPOpened {
