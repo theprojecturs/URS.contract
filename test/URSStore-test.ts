@@ -212,6 +212,73 @@ describe('URSStore', () => {
       await ursStoreContract.setOpeningHours(openingHours);
     });
 
+    it('fails for empty recipients', async () => {
+      await expect(
+        ursStoreContract.connect(deployer).preMintURS([])
+      ).to.be.revertedWith('Number of recipients must be greater than 0');
+    });
+
+    it('fails if amount of recipients exceeds allowed amount', async () => {
+      await expect(
+        ursStoreContract
+          .connect(deployer)
+          .preMintURS(new Array(MAX_PRE_MINT_SUPPLY + 1).fill(deployer.address))
+      ).to.be.revertedWith('Exceeds max pre-mint URS');
+    });
+
+    it('fails if one of recipients address is zero', async () => {
+      await expect(
+        ursStoreContract
+          .connect(deployer)
+          .preMintURS([deployer.address, EMPTY_ADDRESS])
+      ).to.be.revertedWith('receiver can not be empty address');
+    });
+
+    it('successfully mint multiple URS', async () => {
+      const mintAmount = MAX_PRE_MINT_SUPPLY;
+      const preMintedURSAmountBefore = await ursStoreContract.preMintedURS();
+
+      await ursStoreContract
+        .connect(deployer)
+        .preMintURS(new Array(mintAmount).fill(deployer.address));
+
+      const preMintedURSAmountAfter = await ursStoreContract.preMintedURS();
+
+      expect(preMintedURSAmountAfter).to.eq(
+        preMintedURSAmountBefore.add(mintAmount)
+      );
+    });
+
+    it('successfully minted to each recipients', async () => {
+      const recipientsInfo = {
+        [deployer.address]: 1,
+        [account1.address]: MAX_PRE_MINT_SUPPLY - 1,
+      };
+      const balanceBeforeInfo: { [key: string]: number } = {};
+      await Promise.all(
+        Object.keys(recipientsInfo).map(async (addr) => {
+          const balance = await ursFactoryContract.balanceOf(addr);
+
+          balanceBeforeInfo[addr] = balance.toNumber();
+        })
+      );
+
+      const recipients: string[] = [];
+      Object.entries(recipientsInfo).forEach(([addr, amount]) => {
+        recipients.push(...new Array(amount).fill(addr));
+      });
+
+      await ursStoreContract.connect(deployer).preMintURS(recipients);
+
+      await Promise.all(
+        Object.keys(recipientsInfo).map(async (addr) => {
+          const balance = await ursFactoryContract.balanceOf(addr);
+
+          expect(balance).to.eq(recipientsInfo[addr]);
+        })
+      );
+    });
+
     it('fails if non-owner try to call', async () => {
       const nonOwner = account1;
       expect(await ursStoreContract.owner()).not.to.eq(nonOwner.address);
