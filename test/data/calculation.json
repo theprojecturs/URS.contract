@@ -370,5 +370,41 @@
     "myIndex": 0,
     "myAmount": 100,
     "validTicketAmountExpected": 50
+  },
+  {
+    "preMintedURS": 20,
+    "newlyMintedURSWithPass": 0,
+    "totalTickets": 20000,
+    "raffleNumber": 2,
+    "slotSizeExpected": 2,
+    "offsetInSlotExpected": 0,
+    "lastTargetIndexExpected": 19959,
+    "myIndex": 1,
+    "myAmount": 100,
+    "validTicketAmountExpected": 50
+  },
+  {
+    "preMintedURS": 20,
+    "newlyMintedURSWithPass": 0,
+    "totalTickets": 40000,
+    "raffleNumber": 3,
+    "slotSizeExpected": 4,
+    "offsetInSlotExpected": 3,
+    "lastTargetIndexExpected": 39919,
+    "myIndex": 1,
+    "myAmount": 5,
+    "validTicketAmountExpected": 1
+  },
+  {
+    "preMintedURS": 20,
+    "newlyMintedURSWithPass": 0,
+    "totalTickets": 40000,
+    "raffleNumber": 3,
+    "slotSizeExpected": 4,
+    "offsetInSlotExpected": 3,
+    "lastTargetIndexExpected": 39919,
+    "myIndex": 4,
+    "myAmount": 2,
+    "validTicketAmountExpected": 0
   }
 ]
